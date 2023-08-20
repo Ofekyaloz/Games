@@ -11,10 +11,9 @@ from pygame.locals import (
     K_m,
     KEYDOWN,
     QUIT,
-    K_RETURN
+    K_RETURN,
+    K_KP_ENTER
 )
-from prettytable import PrettyTable
-
 
 # Define constants for the screen width and height
 SCREEN_WIDTH = 800
@@ -28,7 +27,22 @@ class Player(pygame.sprite.Sprite):
         super(Player, self).__init__()
         self.surf = pygame.image.load("jet.png").convert()
         self.surf.set_colorkey((255, 255, 255), RLEACCEL)
-        self.rect = self.surf.get_rect()
+        self.rect = self.surf.get_rect(
+            center=(
+                0,
+                SCREEN_HEIGHT // 2,
+            )
+        )
+        self.score = 0
+        self.lives = 3
+
+    def reset(self):
+        self.rect = self.surf.get_rect(
+            center=(
+                0,
+                SCREEN_HEIGHT // 2,
+            )
+        )
         self.score = 0
         self.lives = 3
 
@@ -266,7 +280,8 @@ while run_game:
             pygame.sprite.spritecollideany(player, enemies).kill()
             collision_sound.play()
         else:
-            player.kill()
+            # player.kill()
+            pass
 
             # Stop any moving sounds and play the collision sound
             move_up_sound.stop()
@@ -295,20 +310,37 @@ while run_game:
     clock.tick(30)
 
     if not running:
-        record_table = PrettyTable()
-        record_table.field_names = ["Score"]
-        game_records.append([str(player.score)])
-        for record in game_records:
-            record_table.add_row(record)
+        game_records.append(player.score)
+        game_records.sort(reverse=True)
+        if len(game_records) > 10:
+            game_records.pop()
+
         while not running:
-            font = pygame.font.Font(None, 30)
-            record_text = "Score: {}".format(player.score)
+            font = pygame.font.Font(None, 40)
+            record_text = "Rank | Score"
             record_surface = font.render(record_text, True, (0, 0, 0))
-            record_rect = record_surface.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
+            record_rect = record_surface.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 200))
             screen.blit(record_surface, record_rect)
-            pygame.display.flip()
+            vertical_position = -170
+            for i, score in enumerate(game_records):
+                i += 1
+                if i < 10:
+                    i = '0' + str(i)
+                score_text = "{}. {}".format(i, score)
+                score_surface = font.render(score_text, True, (0, 0, 0))
+                score_rect = score_surface.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + vertical_position))
+                #     score_rect = score_surface.get_rect(topleft=(10, vertical_position))
+                screen.blit(score_surface, score_rect)
+                vertical_position += 30
+
+            font = pygame.font.Font(None, 40)
+            playAgain = "To play again press ENTER"
+            playAgain_surface = font.render(playAgain, True, (255, 0, 0))
+            playAgain_rect = playAgain_surface.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + vertical_position + 30))
+            screen.blit(playAgain_surface, playAgain_rect)
 
             # Ensure we maintain a 30 frames per second rate
+            pygame.display.flip()
             clock.tick(30)
 
             for event in pygame.event.get():
@@ -319,8 +351,15 @@ while run_game:
                         running = True
                         run_game = False
 
-                    if event.key == K_p:
-                        pause = not pause
+                    if event.key == K_RETURN or event.key == K_KP_ENTER:
+                        running = True
+                        player.reset()
+                        for enemy in enemies:
+                            enemy.kill()
+                        for cloud in clouds:
+                            cloud.kill()
+                        for heart in hearts:
+                            heart.kill()
 
                     if event.key == K_m:
                         if sound:
@@ -342,12 +381,6 @@ while run_game:
                 elif event.type == QUIT:
                     running = True
                     run_game = False
-
-                elif event.type == K_RETURN:
-                    running = True
-                    player = Player()
-
-
 
 # At this point, we're done, so we can stop and quit the mixer
 pygame.mixer.music.stop()
