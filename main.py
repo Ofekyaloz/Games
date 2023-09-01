@@ -274,15 +274,13 @@ while run_game:
 
     # Check if any enemies have collided with the player
     if pygame.sprite.spritecollideany(player, enemies):
-        # If so, remove the player
-        if player.lives != 1:
-            player.lives -= 1
+
+        player.lives -= 1
+
+        if player.lives > 0:
             pygame.sprite.spritecollideany(player, enemies).kill()
             collision_sound.play()
         else:
-            # player.kill()
-            pass
-
             # Stop any moving sounds and play the collision sound
             move_up_sound.stop()
             move_down_sound.stop()
