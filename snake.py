@@ -10,12 +10,18 @@ game_records = []
 class Player(pygame.sprite.Sprite):
     def __init__(self):
         super(Player, self).__init__()
-        self.surf = pygame.Surface((30, 30))
-        self.surf.fill((0, 0, 0))
+        self.player_images = {
+            "up": pygame.image.load("snake_up.png").convert(),
+            "down": pygame.image.load("snake_down.png").convert(),
+            "left": pygame.image.load("snake_left.png").convert(),
+            "right": pygame.image.load("snake_right.png").convert(),
+        }
+        self.surf = self.player_images["right"]
+        self.surf.set_colorkey((255, 255, 255), RLEACCEL)
         self.rect = self.surf.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
         self.score = 0
         self.alive = True
-        self.direction = 0
+        self.direction = "right"
         self.lastPosition = self.rect
         self.lastDirection = self.direction
         self.tail = self
@@ -24,7 +30,8 @@ class Player(pygame.sprite.Sprite):
         self.rect = self.surf.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
         self.score = 0
         self.alive = True
-        self.direction = 0
+        self.direction = "right"
+        self.surf = self.player_images["right"]
         self.lastPosition = self.rect
         self.tail = self
 
@@ -33,25 +40,29 @@ class Player(pygame.sprite.Sprite):
         self.lastDirection = self.direction
         self.lastPosition = self.rect.copy()
 
-        if pressed_keys[K_UP] and self.direction != 3:
-            self.direction = 2
-        if pressed_keys[K_DOWN] and self.direction != 2:
-            self.direction = 3
-        if pressed_keys[K_LEFT] and self.direction != 0:
-            self.direction = 1
-        if pressed_keys[K_RIGHT] and self.direction != 1:
-            self.direction = 0
+        if pressed_keys[K_UP] and self.direction != "down":
+            self.direction = "up"
+            self.surf = self.player_images["up"]
+        if pressed_keys[K_DOWN] and self.direction != "up":
+            self.direction = "down"
+            self.surf = self.player_images["down"]
+        if pressed_keys[K_LEFT] and self.direction != "right":
+            self.direction = "left"
+            self.surf = self.player_images["left"]
+        if pressed_keys[K_RIGHT] and self.direction != "left":
+            self.direction = "right"
+            self.surf = self.player_images["right"]
 
         # Keep player on the screen
         if self.rect.left < 0 or self.rect.right > SCREEN_WIDTH or self.rect.top <= 0 or self.rect.bottom >= SCREEN_HEIGHT:
             self.alive = False
         else:
             x = 15
-            if self.direction == 0:
+            if self.direction == "right":
                 self.rect.move_ip(x, 0)
-            elif self.direction == 1:
+            elif self.direction == "left":
                 self.rect.move_ip(-x, 0)
-            elif self.direction == 2:
+            elif self.direction == "up":
                 self.rect.move_ip(0, -x)
             else:
                 self.rect.move_ip(0, x)
@@ -60,8 +71,19 @@ class Player(pygame.sprite.Sprite):
 class Tail(pygame.sprite.Sprite):
     def __init__(self, head):
         super(Tail, self).__init__()
-        self.surf = pygame.Surface((30, 30))
-        self.surf.fill((random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)))
+        self.size = 25  # Set the size of the tail segment
+        self.surf = pygame.Surface((self.size, self.size), pygame.SRCALPHA)
+
+        # Draw a circular body with black outline
+        pygame.draw.circle(self.surf, (0, 0, 0), (self.size // 2, self.size // 2), self.size // 2)
+        pygame.draw.circle(self.surf, (97, 151, 72), (self.size // 2, self.size // 2), self.size // 2 - 2)
+
+        # another view
+        # self.surf = pygame.Surface((30, 30), pygame.SRCALPHA)
+        # pygame.draw.circle(self.surf, (0, 0, 0, 255), (15, 15), 15)
+        # pygame.draw.rect(self.surf, (97, 151, 72), (0, 10, 30, 10))
+        # pygame.draw.rect(self.surf, (97, 151, 72), (10, 0, 10, 30))
+
         self.rect = head.lastPosition
         self.head = head
         self.lastPosition = self.rect
@@ -105,12 +127,14 @@ apple = Apple()
 
 tails = pygame.sprite.Group()
 all_sprites = pygame.sprite.Group()
-all_sprites.add(player)
 all_sprites.add(apple)
+all_sprites.add(player)
 
 run_game = True
 running = True
 pause = False
+
+first_tails = []
 
 while run_game:
     # Look at every event in the queue
@@ -148,15 +172,18 @@ while run_game:
     running = player.alive
     tails.update()
 
-    screen.fill((119,136,153))
+    screen.fill((119, 136, 153))
 
     # Draw all our sprites
     for entity in all_sprites:
         screen.blit(entity.surf, entity.rect)
 
     # Check if any enemies have collided with the player
-    # if pygame.sprite.spritecollideany(player, tails):
-    #     player.alive = False
+    for tail in tails:
+        if tail in first_tails:
+            continue
+        if player.rect.colliderect(tail.rect):
+            player.alive = False
 
     # Check if the new position collides with any tail segment
     # if not any(tail.rect.colliderect(side_rect) for tail in tails):
@@ -168,7 +195,14 @@ while run_game:
         tail = Tail(player.tail)
         player.tail = tail
         tails.add(tail)
-        all_sprites.add(tail)
+        if player.score != 10:
+            all_sprites.add(tail)
+        else:
+            all_sprites.remove(player)
+            all_sprites.add(tail)
+            all_sprites.add(player)
+        if len(first_tails) < 3:
+            first_tails.append(tail)
 
     font = pygame.font.Font(None, 40)
     text = font.render("Score: " + str(player.score), True, (0, 0, 0))
@@ -186,6 +220,7 @@ while run_game:
         game_records.sort(reverse=True)
         if len(game_records) > 10:
             game_records.pop()
+        first_tails = []
 
         while not running:
             font = pygame.font.Font(None, 40)
