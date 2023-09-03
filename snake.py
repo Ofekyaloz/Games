@@ -36,7 +36,6 @@ class Player(pygame.sprite.Sprite):
         self.tail = self
 
     def update(self, pressed_keys):
-        # right = 0, left = 1, up = 2, down = 3
         self.lastDirection = self.direction
         self.lastPosition = self.rect.copy()
 
@@ -78,20 +77,18 @@ class Tail(pygame.sprite.Sprite):
         pygame.draw.circle(self.surf, (0, 0, 0), (self.size // 2, self.size // 2), self.size // 2)
         pygame.draw.circle(self.surf, (97, 151, 72), (self.size // 2, self.size // 2), self.size // 2 - 2)
 
+        self.rect = head.lastPosition
+        self.head = head
+        self.lastPosition = self.rect
+
         # another view
         # self.surf = pygame.Surface((30, 30), pygame.SRCALPHA)
         # pygame.draw.circle(self.surf, (0, 0, 0, 255), (15, 15), 15)
         # pygame.draw.rect(self.surf, (97, 151, 72), (0, 10, 30, 10))
         # pygame.draw.rect(self.surf, (97, 151, 72), (10, 0, 10, 30))
 
-        self.rect = head.lastPosition
-        self.head = head
-        self.lastPosition = self.rect
-        self.direction = head.direction
-        self.lastDirection = self.direction
 
     def update(self):
-        self.lastDirection = self.direction
         self.lastPosition = self.rect.copy()
         self.rect = self.head.lastPosition
 
@@ -106,8 +103,6 @@ class Apple(pygame.sprite.Sprite):
                                                random.randint(self.radius, SCREEN_HEIGHT - self.radius)))
 
     def newPossition(self, tails):
-        self.surf = pygame.image.load("apple.png").convert()
-        self.surf.set_colorkey((255, 255, 255), RLEACCEL)
         while True:
             new_rect = self.surf.get_rect(center=(random.randint(self.radius, SCREEN_WIDTH - self.radius),
                                                   random.randint(self.radius, SCREEN_HEIGHT - self.radius)))
@@ -159,10 +154,7 @@ while run_game:
         text = font.render("Paused", True, (0, 0, 0))
         text_rect = text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2))
         screen.blit(text, text_rect)
-
         pygame.display.flip()
-
-        # Ensure we maintain a 30 frames per second rate
         clock.tick(30)
         continue
 
@@ -178,16 +170,11 @@ while run_game:
     for entity in all_sprites:
         screen.blit(entity.surf, entity.rect)
 
-    # Check if any enemies have collided with the player
     for tail in tails:
         if tail in first_tails:
             continue
         if player.rect.colliderect(tail.rect):
             player.alive = False
-
-    # Check if the new position collides with any tail segment
-    # if not any(tail.rect.colliderect(side_rect) for tail in tails):
-    #     self.rect = new_rect
 
     if apple.rect.colliderect(player.rect):
         apple.newPossition(tails)
@@ -220,7 +207,6 @@ while run_game:
         game_records.sort(reverse=True)
         if len(game_records) > 10:
             game_records.pop()
-        first_tails = []
 
         while not running:
             font = pygame.font.Font(None, 40)
@@ -264,6 +250,7 @@ while run_game:
                         apple.newPossition([])
                         for tail in tails:
                             tail.kill()
+                        first_tails = []
 
                 # Did the user click the window close button? If so, stop the loop
                 elif event.type == QUIT:
