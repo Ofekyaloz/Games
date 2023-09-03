@@ -77,15 +77,15 @@ class Tail(pygame.sprite.Sprite):
 class Apple(pygame.sprite.Sprite):
     def __init__(self):
         super(Apple, self).__init__()
+        self.surf = pygame.image.load("apple.png").convert()
+        self.surf.set_colorkey((255, 255, 255), RLEACCEL)
         self.radius = 10
-        self.surf = pygame.Surface((self.radius * 2, self.radius * 2), pygame.SRCALPHA)
-        pygame.draw.circle(self.surf, (255, 0, 0), (self.radius, self.radius), self.radius)  # Draw a red circle
         self.rect = self.surf.get_rect(center=(random.randint(self.radius, SCREEN_WIDTH - self.radius),
                                                random.randint(self.radius, SCREEN_HEIGHT - self.radius)))
 
     def newPossition(self, tails):
-        self.surf = pygame.Surface((self.radius * 2, self.radius * 2), pygame.SRCALPHA)
-        pygame.draw.circle(self.surf, (255, 0, 0), (self.radius, self.radius), self.radius)  # Draw a red circle
+        self.surf = pygame.image.load("apple.png").convert()
+        self.surf.set_colorkey((255, 255, 255), RLEACCEL)
         while True:
             new_rect = self.surf.get_rect(center=(random.randint(self.radius, SCREEN_WIDTH - self.radius),
                                                   random.randint(self.radius, SCREEN_HEIGHT - self.radius)))
@@ -148,8 +148,7 @@ while run_game:
     running = player.alive
     tails.update()
 
-    # Fill the screen with sky blue
-    screen.fill((135, 206, 250))
+    screen.fill((119,136,153))
 
     # Draw all our sprites
     for entity in all_sprites:
