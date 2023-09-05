@@ -1,19 +1,6 @@
 import pygame
 import random
-from pygame.locals import (
-    RLEACCEL,
-    K_UP,
-    K_DOWN,
-    K_LEFT,
-    K_RIGHT,
-    K_ESCAPE,
-    K_p,
-    K_m,
-    KEYDOWN,
-    QUIT,
-    K_RETURN,
-    K_KP_ENTER
-)
+from pygame.locals import *
 
 # Define constants for the screen width and height
 SCREEN_WIDTH = 800
@@ -27,22 +14,12 @@ class Player(pygame.sprite.Sprite):
         super(Player, self).__init__()
         self.surf = pygame.image.load("jet.png").convert()
         self.surf.set_colorkey((255, 255, 255), RLEACCEL)
-        self.rect = self.surf.get_rect(
-            center=(
-                0,
-                SCREEN_HEIGHT // 2,
-            )
-        )
+        self.rect = self.surf.get_rect(center=(0,SCREEN_HEIGHT // 2))
         self.score = 0
         self.lives = 3
 
     def reset(self):
-        self.rect = self.surf.get_rect(
-            center=(
-                0,
-                SCREEN_HEIGHT // 2,
-            )
-        )
+        self.rect = self.surf.get_rect(center=(0, SCREEN_HEIGHT // 2))
         self.score = 0
         self.lives = 3
 
@@ -203,6 +180,14 @@ while run_game:
 
             if event.key == K_p:
                 pause = not pause
+                if pause:
+                    pygame.time.set_timer(ADDENEMY, 0)
+                    pygame.time.set_timer(ADDCLOUD, 0)
+                    pygame.time.set_timer(ADDHEART, 0)
+                else:
+                    pygame.time.set_timer(ADDENEMY, 250)
+                    pygame.time.set_timer(ADDCLOUD, 1000)
+                    pygame.time.set_timer(ADDHEART, 10000)
 
             if event.key == K_m:
                 if sound:
