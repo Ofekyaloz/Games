@@ -1,6 +1,6 @@
 # Games
 
-## Jet Escape Game
+# Jet Escape Game
 Jet Escape is a simple 2D arcade game created using the Python library pygame. The game challenges the player to control a jet and avoid enemy missiles while collecting hearts to increase their lives and score. Your goal is to survive as long as possible and achieve the highest score.
 
 ## How to Play
@@ -23,8 +23,7 @@ Jet Escape is a simple 2D arcade game created using the Python library pygame. T
 ![צילום מסך 2023-08-31 190837](https://github.com/Ofekyaloz/Games/assets/92519983/8e78b29c-176b-4982-8899-665946c3f964)
 credit - https://realpython.com/pygame-a-primer/
 
-
-## Snake Game
+# Snake Game
 Snake Game is a classic arcade game where the player controls a snake that moves around the screen to eat apples and grow longer. The game continues until the snake runs into a wall or collides with its own tail.
 
 ## Features
@@ -47,8 +46,32 @@ Snake Game is a classic arcade game where the player controls a snake that moves
 ![image](https://github.com/Ofekyaloz/Games/assets/92519983/a4ac8f6e-26c2-4971-8ece-9edd12a9198f)
 
 
+# Flappy Bird
 
+## Description
 
+Flappy Bird is a classic side-scrolling game where the player controls a bird and tries to navigate it through a series of pipes without hitting them or the ground. The objective is to achieve the highest score possible by passing through as many pipes as you can.
 
+## Features
 
+- Classic Flappy Bird gameplay
+- Simple and intuitive controls
+- Randomly generated obstacles
+- Score tracking
+- Pause functionality
+- Cloud elements for added visual appeal
+
+### How to Play
+- Press the spacebar to make the bird flap and ascend.
+- Avoid colliding with pipes or the ground.
+- Pass through the gaps between pipes to earn points.
+- The game ends when the bird collides with an obstacle or the ground.
+### Controls
+- Spacebar: Flap and ascend
+- P: Pause the game
+###Scoring
+- Earn 1 point for each pipe passed through successfully.
+
+![image](https://github.com/Ofekyaloz/Games/assets/92519983/74eac17e-7210-4018-9a56-90409886d78f)
+![image](https://github.com/Ofekyaloz/Games/assets/92519983/534a8d7b-95e5-4ddc-98ae-1b4e4126ee84)
 
