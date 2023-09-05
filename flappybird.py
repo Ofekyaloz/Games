@@ -7,6 +7,7 @@ SCREEN_HEIGHT = 600
 game_records = []
 pygame.init()
 
+
 class Player(pygame.sprite.Sprite):
     def __init__(self):
         super(Player, self).__init__()
@@ -26,14 +27,16 @@ class Player(pygame.sprite.Sprite):
         self.rect = self.surf.get_rect(center=(50, SCREEN_HEIGHT // 2))
         self.score = 0
         self.alive = True
+        self.rotation_angle = 0
         self.surf = self.player_images[0]
+        self.surf = pygame.transform.rotate(self.surf, self.rotation_angle)
         self.pic = 0
 
     def update(self, pressed_keys):
         x = 5
         self.pic += 1
         self.surf = self.player_images[self.pic % 3]
-        if pressed_keys[K_UP]:
+        if pressed_keys[K_SPACE]:
             if self.rotation_angle < 0:
                 self.rotation_angle = 0
             elif self.rotation_angle < 20:
@@ -76,13 +79,18 @@ class Obstacle(pygame.sprite.Sprite):
         self.surfBottom = pygame.transform.scale(self.surfBottom, (30, bottomHeight))
         self.rectBottom = self.surfBottom.get_rect(bottomleft=(SCREEN_WIDTH + 50, SCREEN_HEIGHT))
 
+        self.score = False
+
     def update(self):
         self.rectTop.move_ip(-5, 0)
         self.rectBottom.move_ip(-5, 0)
 
-        if self.rectTop.right < 0 or self.rectBottom.right < 0:
-            self.kill()
+        if not self.score and self.rectTop.right < 50:
             player.score += 1
+            self.score = True
+
+        if self.rectTop.right < 0:
+            self.kill()
 
 
 class Cloud(pygame.sprite.Sprite):
@@ -109,7 +117,10 @@ class Cloud(pygame.sprite.Sprite):
 def render_score(score):
     score_str = str(score)
     digit_height = numbers[0].get_height()  # Assuming all digit images have the same height
-    total_width = len(score_str) * numbers[0].get_width()
+    digit_width = numbers[0].get_width()  # Assuming all digit images have the same width
+
+    # Calculate the total width and height for the score surface
+    total_width = len(score_str) * (digit_width + 5)  # Adding 5 pixels of space between digits
     total_height = digit_height
 
     # Create a surface with alpha channel
@@ -120,10 +131,9 @@ def render_score(score):
         digit = int(digit_char)
         digit_image = numbers[digit]
         score_surface.blit(digit_image, (x_position, 0))
-        x_position += digit_image.get_width()
+        x_position += digit_width + 3  # Add 5 pixels of space between digits
 
     return score_surface
-
 
 
 clock = pygame.time.Clock()
@@ -142,7 +152,6 @@ player = Player()
 run_game = True
 running = True
 pause = False
-
 
 numbers = {}
 for i in range(10):
@@ -212,11 +221,6 @@ while run_game:
 
     screen.blit(player.surf, player.rect)
 
-    # font = pygame.font.Font(None, 40)
-    # text = font.render(str(player.score), True, (255, 255, 255))
-    # text_rect = text.get_rect(center=(SCREEN_WIDTH // 2, 30))
-    # screen.blit(text, text_rect)
-
     score_image = render_score(player.score)
     score_rect = score_image.get_rect(center=(SCREEN_WIDTH // 2, 30))
     screen.blit(score_image, score_rect)
@@ -240,17 +244,16 @@ while run_game:
             record_rect = record_surface.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 200))
             screen.blit(record_surface, record_rect)
             vertical_position = -170
+
             for i, score in enumerate(game_records):
                 i += 1
-                if i < 10:
-                    i = '0' + str(i)
                 score_text = "{}. {}".format(i, score)
                 score_surface = font.render(score_text, True, (0, 0, 0))
                 score_rect = score_surface.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + vertical_position))
                 screen.blit(score_surface, score_rect)
                 vertical_position += 30
 
-            font = pygame.font.Font(None, 40)
+            font = pygame.font.Font(None, 30)
             playAgain = "To play again press ENTER"
             playAgain_surface = font.render(playAgain, True, (255, 0, 0))
             playAgain_rect = playAgain_surface.get_rect(
