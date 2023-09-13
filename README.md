@@ -69,7 +69,7 @@ Flappy Bird is a classic side-scrolling game where the player controls a bird an
 ### Controls
 - Spacebar: Flap and ascend
 - P: Pause the game
-### Scoring
+- ### Scoring
 - Earn 1 point for each pipe passed through successfully.
 
 ![image](https://github.com/Ofekyaloz/Games/assets/92519983/74eac17e-7210-4018-9a56-90409886d78f)
