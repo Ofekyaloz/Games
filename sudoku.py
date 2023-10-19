@@ -36,21 +36,20 @@ def is_valid_move(board, row, col, num):
     return True
 
 
-def solve_sudoku(board):
-    for row in range(9):
-        for col in range(9):
-            if board[row][col] == 0:
-                for num in range(1, 10):
-                    if is_valid_move(board, row, col, num):
-                        board[row][col] = num
-                        if solve_sudoku(board):
-                            return True
-                        board[row][col] = 0
-                return False
-    return True
-
-
 def generate_sudoku_puzzle():
+    def solve_sudoku(board):
+        for row in range(9):
+            for col in range(9):
+                if board[row][col] == 0:
+                    for num in random.sample(range(1, 10), 9):
+                        if is_valid_move(board, row, col, num):
+                            board[row][col] = num
+                            if solve_sudoku(board):
+                                return True
+                            board[row][col] = 0
+                    return False
+        return True
+
     # Start with an empty Sudoku board
     puzzle_board = [[0 for _ in range(9)] for _ in range(9)]
 
@@ -60,7 +59,7 @@ def generate_sudoku_puzzle():
     # Create a copy of the solution to generate the puzzle
     puzzle_copy = [row[:] for row in puzzle_board]
 
-    # Remove some numbers to create the puzzle
+    # Remove numbers to create the puzzle
     for _ in range(40):  # Adjust the number of iterations to control the puzzle difficulty
         row, col = random.randint(0, 8), random.randint(0, 8)
         while puzzle_copy[row][col] == 0:
@@ -187,10 +186,64 @@ def main():
     while running:
         screen.fill(WHITE)
         draw_grid(sudoku_board, fixed_cells, violate)
+
         if counter == 81 and not violate:
             font = pygame.font.Font(None, 48)
-            win_text = font.render("You Win! Puzzle Completed!", True, RED)
-            screen.blit(win_text, ((SCREEN_WIDTH - win_text.get_width()) // 2, SCREEN_HEIGHT // 2))
+            win_text1 = font.render("You Win!", True, RED)
+            win_text2 = font.render("Puzzle Completed!", True, RED)
+            play_again_text = font.render("Press Enter to Play Again", True, (0, 0, 255))  # Set text color to blue
+
+            border_width = 2
+            border_color = BLACK
+
+            border_win_text1 = pygame.Surface(
+                (win_text1.get_width() + 2 * border_width, win_text1.get_height() + 2 * border_width))
+            border_win_text1.fill(border_color)
+            border_win_text1.blit(win_text1, (border_width, border_width))
+
+            border_win_text2 = pygame.Surface(
+                (win_text2.get_width() + 2 * border_width, win_text2.get_height() + 2 * border_width))
+            border_win_text2.fill(border_color)
+            border_win_text2.blit(win_text2, (border_width, border_width))
+
+            border_play_again_text = pygame.Surface(
+                (play_again_text.get_width() + 2 * border_width, play_again_text.get_height() + 2 * border_width))
+            border_play_again_text.fill(border_color)
+            border_play_again_text.blit(play_again_text, (border_width, border_width))
+
+            # Calculate vertical positions for text
+            text1_y = (SCREEN_HEIGHT - border_win_text1.get_height() - border_win_text2.get_height() - border_play_again_text.get_height() - 40) // 2
+            text2_y = text1_y + border_win_text1.get_height()
+            play_again_text_y = text2_y + border_win_text2.get_height() + 20  # Moved down by 20 pixels
+
+            # Blit the bordered text on the screen
+            screen.blit(border_win_text1, ((SCREEN_WIDTH - border_win_text1.get_width()) // 2, text1_y))
+            screen.blit(border_win_text2, ((SCREEN_WIDTH - border_win_text2.get_width()) // 2, text2_y))
+            screen.blit(border_play_again_text,
+                        ((SCREEN_WIDTH - border_play_again_text.get_width()) // 2, play_again_text_y))
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                if event.type == pygame.KEYDOWN:
+                    if event.key == K_ESCAPE:
+                        running = False
+                    if event.key == pygame.K_RETURN:
+                        sudoku_board, fixed_cells = generate_sudoku_puzzle()
+                        running = True
+                        selected = -math.inf, -math.inf
+                        violate = set()
+                        d = {}
+                        counter = 0
+                        for row in fixed_cells:
+                            for cell in row:
+                                if cell:
+                                    counter += 1
+
+            pygame.display.flip()
+            clock.tick(FPS)
+            continue
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
