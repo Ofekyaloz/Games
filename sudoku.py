@@ -7,7 +7,7 @@ from pygame import K_ESCAPE
 
 # Constants
 SCREEN_WIDTH = 540
-GRID_SIZE = 9
+BOX_ROWS = BOX_COLS = GRID_SIZE = 1
 CELL_SIZE = SCREEN_WIDTH // GRID_SIZE
 SCREEN_HEIGHT = GRID_SIZE * CELL_SIZE
 CELL_SIZE = SCREEN_WIDTH // GRID_SIZE
@@ -17,31 +17,40 @@ RED = (255, 0, 0)
 FPS = 30
 
 
-def is_valid_move(board, row, col, num):
-    # Check if the number is not in the same row
-    if num in board[row]:
-        return False
-
-    # Check if the number is not in the same column
-    if num in [board[i][col] for i in range(9)]:
-        return False
-
-    # Check if the number is not in the same 3x3 grid
-    start_row, start_col = 3 * (row // 3), 3 * (col // 3)
-    for i in range(start_row, start_row + 3):
-        for j in range(start_col, start_col + 3):
-            if board[i][j] == num:
-                return False
-
-    return True
-
-
 def generate_sudoku_puzzle():
+    def is_valid_move(board, row, col, num):
+        # Check if the number is not in the same row
+        if num in board[row]:
+            return False
+
+        # Check if the number is not in the same column
+        if num in [board[i][col] for i in range(GRID_SIZE)]:
+            return False
+
+        start_row = BOX_ROWS * (row // BOX_ROWS) if GRID_SIZE != 3 else 0
+        start_col = BOX_COLS * (col // BOX_COLS) if GRID_SIZE != 3 else 0
+        end_rows = start_row + BOX_ROWS if GRID_SIZE != 3 else 3
+        end_cols = start_col + BOX_COLS if GRID_SIZE != 3 else 3
+
+        for i in range(start_row, end_rows):
+            for j in range(start_col, end_cols):
+                if board[i][j] == num:
+                    return False
+
+        return True
+
     def solve_sudoku(board):
-        for row in range(9):
-            for col in range(9):
+        if GRID_SIZE == 9:
+            numbers_range = range(1, GRID_SIZE + 1)
+        elif GRID_SIZE == 6:
+            numbers_range = range(1, GRID_SIZE + 1)
+        else:
+            numbers_range = range(1, 10)
+
+        for row in range(GRID_SIZE):
+            for col in range(GRID_SIZE):
                 if board[row][col] == 0:
-                    for num in random.sample(range(1, 10), 9):
+                    for num in random.sample(numbers_range, len(numbers_range)):
                         if is_valid_move(board, row, col, num):
                             board[row][col] = num
                             if solve_sudoku(board):
@@ -51,7 +60,10 @@ def generate_sudoku_puzzle():
         return True
 
     # Start with an empty Sudoku board
-    puzzle_board = [[0 for _ in range(9)] for _ in range(9)]
+    if GRID_SIZE == 3:
+        puzzle_board = [[0 for _ in range(GRID_SIZE)] for _ in range(GRID_SIZE)]
+    else:
+        puzzle_board = [[0 for _ in range(BOX_COLS * BOX_ROWS)] for _ in range(BOX_ROWS * BOX_COLS)]
 
     # Solve the Sudoku puzzle to get a valid solution
     solve_sudoku(puzzle_board)
@@ -60,21 +72,23 @@ def generate_sudoku_puzzle():
     puzzle_copy = [row[:] for row in puzzle_board]
 
     # Remove numbers to create the puzzle
-    for _ in range(40):  # Adjust the number of iterations to control the puzzle difficulty
-        row, col = random.randint(0, 8), random.randint(0, 8)
+    to_remove = random.randint(GRID_SIZE, GRID_SIZE * GRID_SIZE - GRID_SIZE)
+    for _ in range(to_remove):
+        row, col = random.randint(0, GRID_SIZE - 1), random.randint(0, GRID_SIZE - 1)
         while puzzle_copy[row][col] == 0:
-            row, col = random.randint(0, 8), random.randint(0, 8)
+            row, col = random.randint(0, GRID_SIZE - 1), random.randint(0, GRID_SIZE - 1)
         puzzle_copy[row][col] = 0
 
     # Create a boolean grid to indicate fixed cells
-    fixed_cells = [[True if puzzle_copy[row][col] != 0 else False for col in range(9)] for row in range(9)]
+    fixed_cells = [[True if puzzle_copy[row][col] != 0 else False for col in range(GRID_SIZE)] for row in
+                   range(GRID_SIZE)]
 
     return puzzle_copy, fixed_cells
 
 
 # Check if the number is not in the same 3x3 grid
 def collision_row(board, row, col, num):
-    for i in range(9):
+    for i in range(GRID_SIZE):
         if num == board[row][i]:
             return row, i
 
@@ -83,25 +97,27 @@ def collision_row(board, row, col, num):
 
 # Check if the number is not in the same column
 def collision_col(board, row, col, num):
-    for i in range(9):
+    for i in range(GRID_SIZE):
         if num == board[i][col]:
             return i, col
 
     return -1, -1
 
 
-# Check if the number is not in the same 3x3 grid
 def collision_box(board, row, col, num):
-    start_row, start_col = 3 * (row // 3), 3 * (col // 3)
-    for i in range(start_row, start_row + 3):
-        for j in range(start_col, start_col + 3):
+    start_row = BOX_ROWS * (row // BOX_ROWS) if GRID_SIZE != 3 else 0
+    start_col = BOX_COLS * (col // BOX_COLS) if GRID_SIZE != 3 else 0
+    end_rows = start_row + BOX_ROWS if GRID_SIZE != 3 else 3
+    end_cols = start_col + BOX_COLS if GRID_SIZE != 3 else 3
+    for i in range(start_row, end_rows):
+        for j in range(start_col, end_cols):
             if board[i][j] == num:
                 return i, j
 
     return -1, -1
 
 
-def draw_grid(board, fixed_cells, violate):
+def draw_grid(board, fixed_cells, violate, screen):
     for i in range(GRID_SIZE):
         for j in range(GRID_SIZE):
             if fixed_cells[i][j]:
@@ -117,12 +133,40 @@ def draw_grid(board, fixed_cells, violate):
                              2)  # Vertical line
 
             # Draw thicker borders for each 3x3 box (left, right, top, bottom edges only)
-            if i % 3 == 0:
-                pygame.draw.line(screen, BLACK, (j * CELL_SIZE, i * CELL_SIZE), ((j + 3) * CELL_SIZE, i * CELL_SIZE),
-                                 4)  # Top
-            if j % 3 == 0:
-                pygame.draw.line(screen, BLACK, (j * CELL_SIZE, i * CELL_SIZE), (j * CELL_SIZE, (i + 3) * CELL_SIZE),
-                                 4)  # Left
+            if GRID_SIZE == 9:
+                box_border_thickness = 4
+                rows_per_thicker_border = 3
+                cols_per_thicker_border = 3
+            elif GRID_SIZE == 6:
+                box_border_thickness = 4
+                rows_per_thicker_border = 2
+                cols_per_thicker_border = 3
+            else:
+                box_border_thickness = 2
+                rows_per_thicker_border = 2
+                cols_per_thicker_border = 2
+
+            if i % rows_per_thicker_border == 0 and i > 0:
+                pygame.draw.line(screen, BLACK, (j * CELL_SIZE, i * CELL_SIZE),
+                                 ((j + GRID_SIZE // cols_per_thicker_border) * CELL_SIZE, i * CELL_SIZE),
+                                 box_border_thickness)  # Top
+
+            if j % cols_per_thicker_border == 0 and j > 0 and j < GRID_SIZE - 1:
+                pygame.draw.line(screen, BLACK, (j * CELL_SIZE, i * CELL_SIZE),
+                                 (j * CELL_SIZE, (i + GRID_SIZE // rows_per_thicker_border) * CELL_SIZE),
+                                 box_border_thickness)  # Left
+
+            # Draw thicker right border for 6x6 grid (right of col index 0, 2, and 3)
+            if GRID_SIZE == 6 and j in [0, 2, 3] and j < GRID_SIZE - 1:
+                pygame.draw.line(screen, BLACK, ((j + 1) * CELL_SIZE, i * CELL_SIZE),
+                                 ((j + 1) * CELL_SIZE, (i + GRID_SIZE // rows_per_thicker_border) * CELL_SIZE),
+                                 box_border_thickness)  # Right
+
+            # Draw thicker bottom border for 6x6 grid (top of line 3 or 2 bottom)
+            if GRID_SIZE == 6 and i % 2 == 1 and i > 0:
+                pygame.draw.line(screen, BLACK, (j * CELL_SIZE, (i + 1) * CELL_SIZE),
+                                 ((j + GRID_SIZE // cols_per_thicker_border) * CELL_SIZE, (i + 1) * CELL_SIZE),
+                                 box_border_thickness)  # Bottom
 
             font = pygame.font.Font(None, 36)
             if board[i][j] != 0:
@@ -130,10 +174,6 @@ def draw_grid(board, fixed_cells, violate):
                     text_color = RED
                 else:
                     text_color = BLACK
-                # elif fixed_cells[i][j]:
-                #     text_color = BLACK
-                # else:
-                #     text_color = (128, 128, 128)
                 text = font.render(str(board[i][j]), True, text_color)
                 screen.blit(text, (j * CELL_SIZE + CELL_SIZE // 2 - text.get_width() // 2,
                                    i * CELL_SIZE + CELL_SIZE // 2 - text.get_height() // 2))
@@ -150,44 +190,76 @@ def remove(loc, d, violate, copy, row, col):
                     break
 
             if not found:
-                if (e[0] * 9 + e[1]) not in d:
+                if (e[0] * GRID_SIZE + e[1]) not in d:
                     violate.remove(e)
-                elif tuple([row, col]) in d[(e[0] * 9 + e[1])]:
-                    d[(e[0] * 9 + e[1])].remove(tuple([row, col]))
-                    if not d[(e[0] * 9 + e[1])]:
+                elif tuple([row, col]) in d[(e[0] * GRID_SIZE + e[1])]:
+                    d[(e[0] * GRID_SIZE + e[1])].remove(tuple([row, col]))
+                    if not d[(e[0] * GRID_SIZE + e[1])]:
                         violate.remove(e)
 
 
-pygame.font.init()
-
-# Initialize Pygame
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption("Sudoku")
-clock = pygame.time.Clock()
-
-
-# Main game loop
-def main():
-    sudoku_board, fixed_cells = generate_sudoku_puzzle()
-
-    SCREEN_HEIGHT = GRID_SIZE * CELL_SIZE  # Update SCREEN_HEIGHT based on GRID_SIZE and CELL_SIZE
-
+def choose_difficulty_level():
+    pygame.font.init()
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
+    font = pygame.font.Font(None, 36)
+    text = font.render("Choose Difficulty Level:", True, BLACK)
+    easy_text = font.render("Easy (3x3)", True, BLACK)
+    medium_text = font.render("Medium (6x6)", True, BLACK)
+    hard_text = font.render("Hard (9x9)", True, BLACK)
+
+    while True:
+        screen.fill(WHITE)
+        screen.blit(text, ((SCREEN_WIDTH - text.get_width()) // 2, 100))
+        screen.blit(easy_text, ((SCREEN_WIDTH - easy_text.get_width()) // 2, 200))
+        screen.blit(medium_text, ((SCREEN_WIDTH - medium_text.get_width()) // 2, 300))
+        screen.blit(hard_text, ((SCREEN_WIDTH - hard_text.get_width()) // 2, 400))
+
+        pygame.display.flip()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                pos = pygame.mouse.get_pos()
+                if 200 <= pos[1] <= 200 + easy_text.get_height():
+                    return 3
+                elif 300 <= pos[1] <= 300 + medium_text.get_height():
+                    return 6
+                elif 400 <= pos[1] <= 400 + hard_text.get_height():
+                    return 9
+
+
+def main():
+    if GRID_SIZE == 6:
+        max_number = 6
+    else:
+        max_number = 9
+    pygame.font.init()
+
+    # Initialize Pygame
+    SCREEN_HEIGHT = GRID_SIZE * CELL_SIZE  # Update SCREEN_HEIGHT based on GRID_SIZE and CELL_SIZE
+    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+    pygame.display.set_caption("Sudoku by Ofek Yaloz")
+    clock = pygame.time.Clock()
+
+    sudoku_board, fixed_cells = generate_sudoku_puzzle()
     running = True
     selected = -math.inf, -math.inf
     violate = set()
     d = {}
     counter = 0
+    full_board = GRID_SIZE * GRID_SIZE
     for row in fixed_cells:
         for cell in row:
             if cell:
                 counter += 1
     while running:
         screen.fill(WHITE)
-        draw_grid(sudoku_board, fixed_cells, violate)
+        draw_grid(sudoku_board, fixed_cells, violate, screen)
 
-        if counter == 81 and not violate:
+        if counter == full_board and not violate:
             font = pygame.font.Font(None, 48)
             win_text1 = font.render("You Win!", True, RED)
             win_text2 = font.render("Puzzle Completed!", True, RED)
@@ -212,7 +284,8 @@ def main():
             border_play_again_text.blit(play_again_text, (border_width, border_width))
 
             # Calculate vertical positions for text
-            text1_y = (SCREEN_HEIGHT - border_win_text1.get_height() - border_win_text2.get_height() - border_play_again_text.get_height() - 40) // 2
+            text1_y = (
+                              SCREEN_HEIGHT - border_win_text1.get_height() - border_win_text2.get_height() - border_play_again_text.get_height() - 40) // 2
             text2_y = text1_y + border_win_text1.get_height()
             play_again_text_y = text2_y + border_win_text2.get_height() + 20  # Moved down by 20 pixels
 
@@ -267,7 +340,7 @@ def main():
                     selected = (row, col - 1)
                 elif event.key == pygame.K_RIGHT and col < GRID_SIZE - 1:
                     selected = (row, col + 1)
-                elif event.unicode.isdigit() and 1 <= int(event.unicode) <= 9 and not fixed_cells[row][col]:
+                elif event.unicode.isdigit() and 1 <= int(event.unicode) <= max_number and not fixed_cells[row][col]:
                     number = int(event.unicode)
                     if number == sudoku_board[row][col]:
                         continue
@@ -277,7 +350,7 @@ def main():
                     x2, y2 = collision_col(sudoku_board, row, col, number)
                     x3, y3 = collision_box(sudoku_board, row, col, number)
 
-                    loc = row * 9 + col
+                    loc = row * GRID_SIZE + col
                     if loc not in d:
                         d[loc] = set()
 
@@ -287,18 +360,18 @@ def main():
                     if x1 >= 0:
                         violate.add(tuple([x1, y1]))
                         d[loc].add(tuple([x1, y1]))
-                        if (x1 * 9 + y1) in d:
-                            d[(x1 * 9 + y1)].add(tuple([row, col]))
+                        if (x1 * GRID_SIZE + y1) in d:
+                            d[(x1 * GRID_SIZE + y1)].add(tuple([row, col]))
                     if x2 >= 0:
                         violate.add(tuple([x2, y2]))
                         d[loc].add(tuple([x2, y2]))
-                        if (x2 * 9 + y2) in d:
-                            d[(x2 * 9 + y2)].add(tuple([row, col]))
+                        if (x2 * GRID_SIZE + y2) in d:
+                            d[(x2 * GRID_SIZE + y2)].add(tuple([row, col]))
                     if x3 >= 0:
                         violate.add(tuple([x3, y3]))
                         d[loc].add(tuple([x3, y3]))
-                        if (x3 * 9 + y3) in d:
-                            d[(x3 * 9 + y3)].add(tuple([row, col]))
+                        if (x3 * GRID_SIZE + y3) in d:
+                            d[(x3 * GRID_SIZE + y3)].add(tuple([row, col]))
                     if x1 >= 0 or x2 >= 0 or x3 >= 0:
                         violate.add(tuple([row, col]))
 
@@ -309,7 +382,7 @@ def main():
                     sudoku_board[row][col] = number
 
                 elif event.key == pygame.K_BACKSPACE and not fixed_cells[row][col]:
-                    loc = row * 9 + col
+                    loc = row * GRID_SIZE + col
                     if loc in d:
                         copy = d[loc].copy()
                         remove(loc, d, violate, copy, row, col)
@@ -333,4 +406,15 @@ def main():
 
 
 if __name__ == "__main__":
+    GRID_SIZE = choose_difficulty_level()
+    if GRID_SIZE == 6:
+        BOX_ROWS = 2  # For a 6x6 grid, you want 2 rows of boxes
+        BOX_COLS = 3  # For a 6x6 grid, you want 3 columns of boxes
+    else:
+        BOX_ROWS = GRID_SIZE // 3
+        BOX_COLS = GRID_SIZE // 3
+
+    SCREEN_HEIGHT = GRID_SIZE * CELL_SIZE
+    CELL_SIZE = SCREEN_WIDTH // GRID_SIZE
+
     main()
