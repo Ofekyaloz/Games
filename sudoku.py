@@ -243,8 +243,7 @@ def choose_difficulty_level():
                 sys.exit()
             if event.type == pygame.KEYDOWN:
                 if event.key == K_ESCAPE:
-                    pygame.quit()
-                    sys.exit()
+                    return False
                 elif event.key == pygame.K_UP:
                     selected_option = (selected_option - 1) % len(options)
                 elif event.key == pygame.K_DOWN:
@@ -280,6 +279,7 @@ def choose_difficulty_level():
     CELL_SIZE = SCREEN_WIDTH // GRID_SIZE
     FULL_BOARD = GRID_SIZE * GRID_SIZE
     SCREEN_HEIGHT = GRID_SIZE * CELL_SIZE
+    return True
 
 
 def main():
@@ -298,7 +298,9 @@ def main():
         for cell in row:
             if cell:
                 counter += 1
-    while True:
+
+    run_game = True
+    while run_game:
         screen.fill(WHITE)
         draw_grid(sudoku_board, fixed_cells, violate, screen)
 
@@ -307,6 +309,8 @@ def main():
             win_text1 = font.render("Well Done!", True, RED)
             win_text2 = font.render("Puzzle Completed!", True, RED)
             play_again_text = font.render("Press Enter to Play Again", True, BLUE)
+            press_esc_text = font.render("Press Esc to Menu", True, BLUE)
+
 
             border_width = 2
             border_color = BLACK
@@ -326,17 +330,25 @@ def main():
             border_play_again_text.fill(border_color)
             border_play_again_text.blit(play_again_text, (border_width, border_width))
 
+            border_press_esc_text = pygame.Surface(
+                (press_esc_text.get_width() + 2 * border_width, press_esc_text.get_height() + 2 * border_width))
+            border_press_esc_text.fill(border_color)
+            border_press_esc_text.blit(press_esc_text, (border_width, border_width))
+
             # Calculate vertical positions for text
             text1_y = (
                               SCREEN_HEIGHT - border_win_text1.get_height() - border_win_text2.get_height() - border_play_again_text.get_height() - 40) // 2
             text2_y = text1_y + border_win_text1.get_height()
             play_again_text_y = text2_y + border_win_text2.get_height() + 20  # Moved down by 20 pixels
+            press_esc_text_y = play_again_text_y + border_play_again_text.get_height() + 20  # Moved down by 20 pixels
 
             # Blit the bordered text on the screen
             screen.blit(border_win_text1, ((SCREEN_WIDTH - border_win_text1.get_width()) // 2, text1_y))
             screen.blit(border_win_text2, ((SCREEN_WIDTH - border_win_text2.get_width()) // 2, text2_y))
             screen.blit(border_play_again_text,
                         ((SCREEN_WIDTH - border_play_again_text.get_width()) // 2, play_again_text_y))
+            screen.blit(border_press_esc_text,
+                        ((SCREEN_WIDTH - border_press_esc_text.get_width()) // 2, press_esc_text_y))
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -344,7 +356,9 @@ def main():
                     sys.exit()
                 if event.type == pygame.KEYDOWN:
                     if event.key == K_ESCAPE:
-                        choose_difficulty_level()
+                        run_game = choose_difficulty_level()
+                        if not run_game:
+                            break
                         screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
                         sudoku_board, fixed_cells = generate_sudoku_puzzle()
                         selected = -math.inf, -math.inf
@@ -382,7 +396,9 @@ def main():
 
             if event.type == pygame.KEYDOWN:
                 if event.key == K_ESCAPE:
-                    choose_difficulty_level()
+                    run_game = choose_difficulty_level()
+                    if not run_game:
+                        break
                     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
                     sudoku_board, fixed_cells = generate_sudoku_puzzle()
                     selected = -math.inf, -math.inf
@@ -469,7 +485,8 @@ def main():
         clock.tick(FPS)
 
 
-if __name__ == "__main__":
+def runSudoku():
     pygame.display.set_caption("Sudoku by Ofek Yaloz")
-    choose_difficulty_level()
-    main()
+
+    if choose_difficulty_level():
+        main()

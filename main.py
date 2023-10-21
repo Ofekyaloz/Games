@@ -4,6 +4,7 @@ import sys
 import jet
 import flappybird
 import snake
+import sudoku
 
 # Initialize Pygame
 pygame.init()
@@ -22,7 +23,7 @@ screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Game Menu")
 
 # Initialize variables
-game_options = ["Jet", "Snake", "Flappy Bird"]
+game_options = ["Jet", "Snake", "Flappy Bird", "Sudoku"]
 selected_option = 0
 
 
@@ -35,6 +36,8 @@ def start_game():
         snake.runSnake()
     elif selected_game == "Flappy Bird":
         flappybird.runFlappyBird()
+    elif selected_game == "Sudoku":
+        sudoku.runSudoku()
 
 
 # Game loop
