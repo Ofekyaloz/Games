@@ -7,14 +7,16 @@ from pygame import K_ESCAPE
 
 # Constants
 SCREEN_WIDTH = 540
-BOX_ROWS = BOX_COLS = GRID_SIZE = 1
+BOX_ROWS = BOX_COLS = GRID_SIZE = FULL_BOARD = 1
 CELL_SIZE = SCREEN_WIDTH // GRID_SIZE
 SCREEN_HEIGHT = GRID_SIZE * CELL_SIZE
 CELL_SIZE = SCREEN_WIDTH // GRID_SIZE
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
+BLUE = (0, 0, 255)
 FPS = 30
+MAX_NUMBER = 9
 
 
 def generate_sudoku_puzzle():
@@ -72,7 +74,16 @@ def generate_sudoku_puzzle():
     puzzle_copy = [row[:] for row in puzzle_board]
 
     # Remove numbers to create the puzzle
-    to_remove = random.randint(GRID_SIZE, GRID_SIZE * GRID_SIZE - GRID_SIZE)
+    if GRID_SIZE == 3:
+        low = 5
+        height = 7
+    elif GRID_SIZE == 6:
+        low = 18
+        height = 30
+    else:
+        low = 40
+        height = 60
+    to_remove = random.randint(low, height)
     for _ in range(to_remove):
         row, col = random.randint(0, GRID_SIZE - 1), random.randint(0, GRID_SIZE - 1)
         while puzzle_copy[row][col] == 0:
@@ -151,7 +162,7 @@ def draw_grid(board, fixed_cells, violate, screen):
                                  ((j + GRID_SIZE // cols_per_thicker_border) * CELL_SIZE, i * CELL_SIZE),
                                  box_border_thickness)  # Top
 
-            if j % cols_per_thicker_border == 0 and j > 0 and j < GRID_SIZE - 1:
+            if j % cols_per_thicker_border == 0 and 0 < j < GRID_SIZE - 1:
                 pygame.draw.line(screen, BLACK, (j * CELL_SIZE, i * CELL_SIZE),
                                  (j * CELL_SIZE, (i + GRID_SIZE // rows_per_thicker_border) * CELL_SIZE),
                                  box_border_thickness)  # Left
@@ -199,6 +210,7 @@ def remove(loc, d, violate, copy, row, col):
 
 
 def choose_difficulty_level():
+    global GRID_SIZE, BOX_ROWS, BOX_COLS, SCREEN_HEIGHT, CELL_SIZE, MAX_NUMBER, FULL_BOARD
     pygame.font.init()
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
@@ -207,13 +219,21 @@ def choose_difficulty_level():
     easy_text = font.render("Easy (3x3)", True, BLACK)
     medium_text = font.render("Medium (6x6)", True, BLACK)
     hard_text = font.render("Hard (9x9)", True, BLACK)
+    options = [easy_text, medium_text, hard_text]
+    selected_option = 0
+    chose = False
 
-    while True:
+    while not chose:
         screen.fill(WHITE)
         screen.blit(text, ((SCREEN_WIDTH - text.get_width()) // 2, 100))
-        screen.blit(easy_text, ((SCREEN_WIDTH - easy_text.get_width()) // 2, 200))
-        screen.blit(medium_text, ((SCREEN_WIDTH - medium_text.get_width()) // 2, 300))
-        screen.blit(hard_text, ((SCREEN_WIDTH - hard_text.get_width()) // 2, 400))
+
+        # Draw options with highlighting on the selected option
+        for i, option in enumerate(options):
+            x = (SCREEN_WIDTH - option.get_width()) // 2
+            y = 200 + i * (option.get_height() + 20)
+            if i == selected_option:
+                pygame.draw.rect(screen, BLACK, (x - 10, y - 5, option.get_width() + 20, option.get_height() + 10), 2)
+            screen.blit(option, (x, y))
 
         pygame.display.flip()
 
@@ -221,49 +241,72 @@ def choose_difficulty_level():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-            if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.type == pygame.KEYDOWN:
+                if event.key == K_ESCAPE:
+                    pygame.quit()
+                    sys.exit()
+                elif event.key == pygame.K_UP:
+                    selected_option = (selected_option - 1) % len(options)
+                elif event.key == pygame.K_DOWN:
+                    selected_option = (selected_option + 1) % len(options)
+                elif event.key == pygame.K_RETURN:
+                    if selected_option == 0:
+                        GRID_SIZE = 3
+                    elif selected_option == 1:
+                        GRID_SIZE = 6
+                    elif selected_option == 2:
+                        GRID_SIZE = 9
+                    chose = True
+
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 pos = pygame.mouse.get_pos()
-                if 200 <= pos[1] <= 200 + easy_text.get_height():
-                    return 3
-                elif 300 <= pos[1] <= 300 + medium_text.get_height():
-                    return 6
-                elif 400 <= pos[1] <= 400 + hard_text.get_height():
-                    return 9
+                for i, option in enumerate(options):
+                    x = (SCREEN_WIDTH - option.get_width()) // 2
+                    y = 200 + i * (option.get_height() + 20)
+                    if x <= pos[0] <= x + option.get_width() and y <= pos[1] <= y + option.get_height():
+                        selected_option = i
+                        GRID_SIZE = [3, 6, 9][selected_option]
+                        chose = True
+
+    if GRID_SIZE == 6:
+        BOX_ROWS = 2
+        BOX_COLS = 3
+        MAX_NUMBER = 6
+    else:
+        BOX_ROWS = GRID_SIZE // 3
+        BOX_COLS = GRID_SIZE // 3
+        MAX_NUMBER = 9
+
+    CELL_SIZE = SCREEN_WIDTH // GRID_SIZE
+    FULL_BOARD = GRID_SIZE * GRID_SIZE
+    SCREEN_HEIGHT = GRID_SIZE * CELL_SIZE
 
 
 def main():
-    if GRID_SIZE == 6:
-        max_number = 6
-    else:
-        max_number = 9
     pygame.font.init()
 
     # Initialize Pygame
-    SCREEN_HEIGHT = GRID_SIZE * CELL_SIZE  # Update SCREEN_HEIGHT based on GRID_SIZE and CELL_SIZE
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-    pygame.display.set_caption("Sudoku by Ofek Yaloz")
     clock = pygame.time.Clock()
 
     sudoku_board, fixed_cells = generate_sudoku_puzzle()
-    running = True
     selected = -math.inf, -math.inf
     violate = set()
     d = {}
     counter = 0
-    full_board = GRID_SIZE * GRID_SIZE
     for row in fixed_cells:
         for cell in row:
             if cell:
                 counter += 1
-    while running:
+    while True:
         screen.fill(WHITE)
         draw_grid(sudoku_board, fixed_cells, violate, screen)
 
-        if counter == full_board and not violate:
+        if counter == FULL_BOARD and not violate:
             font = pygame.font.Font(None, 48)
-            win_text1 = font.render("You Win!", True, RED)
+            win_text1 = font.render("Well Done!", True, RED)
             win_text2 = font.render("Puzzle Completed!", True, RED)
-            play_again_text = font.render("Press Enter to Play Again", True, (0, 0, 255))  # Set text color to blue
+            play_again_text = font.render("Press Enter to Play Again", True, BLUE)
 
             border_width = 2
             border_color = BLACK
@@ -301,10 +344,20 @@ def main():
                     sys.exit()
                 if event.type == pygame.KEYDOWN:
                     if event.key == K_ESCAPE:
-                        running = False
+                        choose_difficulty_level()
+                        screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+                        sudoku_board, fixed_cells = generate_sudoku_puzzle()
+                        selected = -math.inf, -math.inf
+                        violate = set()
+                        d = {}
+                        counter = 0
+                        for row in fixed_cells:
+                            for cell in row:
+                                if cell:
+                                    counter += 1
+
                     if event.key == pygame.K_RETURN:
                         sudoku_board, fixed_cells = generate_sudoku_puzzle()
-                        running = True
                         selected = -math.inf, -math.inf
                         violate = set()
                         d = {}
@@ -329,7 +382,17 @@ def main():
 
             if event.type == pygame.KEYDOWN:
                 if event.key == K_ESCAPE:
-                    running = False
+                    choose_difficulty_level()
+                    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+                    sudoku_board, fixed_cells = generate_sudoku_puzzle()
+                    selected = -math.inf, -math.inf
+                    violate = set()
+                    d = {}
+                    counter = 0
+                    for row in fixed_cells:
+                        for cell in row:
+                            if cell:
+                                counter += 1
 
                 row, col = selected
                 if event.key == pygame.K_UP and row > 0:
@@ -340,7 +403,8 @@ def main():
                     selected = (row, col - 1)
                 elif event.key == pygame.K_RIGHT and col < GRID_SIZE - 1:
                     selected = (row, col + 1)
-                elif event.unicode.isdigit() and 1 <= int(event.unicode) <= max_number and not fixed_cells[row][col]:
+                elif event.unicode.isdigit() and 1 <= int(event.unicode) <= MAX_NUMBER and row >= 0 and not \
+                        fixed_cells[row][col]:
                     number = int(event.unicode)
                     if number == sudoku_board[row][col]:
                         continue
@@ -406,15 +470,6 @@ def main():
 
 
 if __name__ == "__main__":
-    GRID_SIZE = choose_difficulty_level()
-    if GRID_SIZE == 6:
-        BOX_ROWS = 2  # For a 6x6 grid, you want 2 rows of boxes
-        BOX_COLS = 3  # For a 6x6 grid, you want 3 columns of boxes
-    else:
-        BOX_ROWS = GRID_SIZE // 3
-        BOX_COLS = GRID_SIZE // 3
-
-    SCREEN_HEIGHT = GRID_SIZE * CELL_SIZE
-    CELL_SIZE = SCREEN_WIDTH // GRID_SIZE
-
+    pygame.display.set_caption("Sudoku by Ofek Yaloz")
+    choose_difficulty_level()
     main()
