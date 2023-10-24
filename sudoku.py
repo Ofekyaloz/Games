@@ -210,33 +210,25 @@ def remove(loc, d, violate, copy, row, col):
 
 
 def choose_difficulty_level():
-    global GRID_SIZE, BOX_ROWS, BOX_COLS, SCREEN_HEIGHT, CELL_SIZE, MAX_NUMBER, FULL_BOARD
+    global GRID_SIZE, BOX_ROWS, BOX_COLS, CELL_SIZE, MAX_NUMBER, FULL_BOARD, SCREEN_HEIGHT
+
+    width = 800
+    height = 600
     pygame.font.init()
-    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+    screen = pygame.display.set_mode((width, height))
 
     font = pygame.font.Font(None, 36)
-    text = font.render("Choose Difficulty Level:", True, BLACK)
-    easy_text = font.render("Easy (3x3)", True, BLACK)
-    medium_text = font.render("Medium (6x6)", True, BLACK)
-    hard_text = font.render("Hard (9x9)", True, BLACK)
+    text = "Choose Difficulty Level:"
+    easy_text = "Easy (3x3)"
+    medium_text = "Medium (6x6)"
+    hard_text = "Hard (9x9)"
     options = [easy_text, medium_text, hard_text]
     selected_option = 0
     chose = False
 
+    option_render = None
+
     while not chose:
-        screen.fill(WHITE)
-        screen.blit(text, ((SCREEN_WIDTH - text.get_width()) // 2, 100))
-
-        # Draw options with highlighting on the selected option
-        for i, option in enumerate(options):
-            x = (SCREEN_WIDTH - option.get_width()) // 2
-            y = 200 + i * (option.get_height() + 20)
-            if i == selected_option:
-                pygame.draw.rect(screen, BLACK, (x - 10, y - 5, option.get_width() + 20, option.get_height() + 10), 2)
-            screen.blit(option, (x, y))
-
-        pygame.display.flip()
-
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -257,15 +249,27 @@ def choose_difficulty_level():
                         GRID_SIZE = 9
                     chose = True
 
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                pos = pygame.mouse.get_pos()
-                for i, option in enumerate(options):
-                    x = (SCREEN_WIDTH - option.get_width()) // 2
-                    y = 200 + i * (option.get_height() + 20)
-                    if x <= pos[0] <= x + option.get_width() and y <= pos[1] <= y + option.get_height():
-                        selected_option = i
-                        GRID_SIZE = [3, 6, 9][selected_option]
-                        chose = True
+        screen.fill((192, 192, 192))
+        text_render = font.render(text, True, BLACK)
+        screen.blit(text_render, ((width - text_render.get_width()) // 2, 100))
+
+        # Draw options with highlighting on the selected option
+        for i, option in enumerate(options):
+            text_color = RED if i == selected_option else BLACK
+            option_render = font.render(option, True, text_color)
+            text_rect = option_render.get_rect(center=(width // 2, 200 + i * (option_render.get_height() + 20) + option_render.get_height() // 2))
+            screen.blit(option_render, text_rect)
+
+        # Draw the ">" symbol over the selected game text
+        marker = font.render(">", True, RED)
+        text_width = font.size(options[selected_option])[0]
+        marker_rect = marker.get_rect(
+            left=(width - text_width) // 2 - 30,
+            centery=(200 + selected_option * (option_render.get_height() + 20) + option_render.get_height() // 2)
+        )
+        screen.blit(marker, marker_rect)
+
+        pygame.display.flip()
 
     if GRID_SIZE == 6:
         BOX_ROWS = 2
@@ -280,6 +284,9 @@ def choose_difficulty_level():
     FULL_BOARD = GRID_SIZE * GRID_SIZE
     SCREEN_HEIGHT = GRID_SIZE * CELL_SIZE
     return True
+
+
+
 
 
 def main():
