@@ -12,7 +12,7 @@ def runJet():
     class Player(pygame.sprite.Sprite):
         def __init__(self):
             super(Player, self).__init__()
-            self.surf = pygame.image.load("jet.png").convert()
+            self.surf = pygame.image.load("images/jet.png").convert()
             self.surf.set_colorkey((255, 255, 255), RLEACCEL)
             self.rect = self.surf.get_rect(center=(0,SCREEN_HEIGHT // 2))
             self.score = 0
@@ -51,7 +51,7 @@ def runJet():
     class Enemy(pygame.sprite.Sprite):
         def __init__(self):
             super(Enemy, self).__init__()
-            self.surf = pygame.image.load("missile.png").convert()
+            self.surf = pygame.image.load("images/missile.png").convert()
             self.surf.set_colorkey((255, 255, 255), RLEACCEL)
             # The starting position is randomly generated, as is the speed
             self.rect = self.surf.get_rect(
@@ -75,7 +75,7 @@ def runJet():
     class Heart(pygame.sprite.Sprite):
         def __init__(self):
             super(Heart, self).__init__()
-            self.surf = pygame.image.load("heart.png").convert()
+            self.surf = pygame.image.load("images/heart.png").convert()
             self.surf.set_colorkey((255, 255, 255), RLEACCEL)
             # The starting position is randomly generated
             self.rect = self.surf.get_rect(
@@ -97,7 +97,7 @@ def runJet():
     class Cloud(pygame.sprite.Sprite):
         def __init__(self):
             super(Cloud, self).__init__()
-            self.surf = pygame.image.load("cloud.png").convert()
+            self.surf = pygame.image.load("images/cloud.png").convert()
             self.surf.set_colorkey((0, 0, 0), RLEACCEL)
             # The starting position is randomly generated
             self.rect = self.surf.get_rect(

@@ -297,7 +297,7 @@ def main():
     clock = pygame.time.Clock()
 
     sudoku_board, fixed_cells = generate_sudoku_puzzle()
-    selected = -math.inf, -math.inf
+    selected = 0,0
     violate = set()
     d = {}
     counter = 0
@@ -368,7 +368,7 @@ def main():
                             break
                         screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
                         sudoku_board, fixed_cells = generate_sudoku_puzzle()
-                        selected = -math.inf, -math.inf
+                        selected = 0, 0
                         violate = set()
                         d = {}
                         counter = 0
@@ -379,7 +379,7 @@ def main():
 
                     if event.key == pygame.K_RETURN:
                         sudoku_board, fixed_cells = generate_sudoku_puzzle()
-                        selected = -math.inf, -math.inf
+                        selected = 0,0
                         violate = set()
                         d = {}
                         counter = 0
@@ -408,7 +408,7 @@ def main():
                         break
                     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
                     sudoku_board, fixed_cells = generate_sudoku_puzzle()
-                    selected = -math.inf, -math.inf
+                    selected = 0, 0
                     violate = set()
                     d = {}
                     counter = 0

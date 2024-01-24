@@ -11,10 +11,10 @@ def runSnake():
         def __init__(self):
             super(Player, self).__init__()
             self.player_images = {
-                "up": pygame.image.load("snake_up.png").convert(),
-                "down": pygame.image.load("snake_down.png").convert(),
-                "left": pygame.image.load("snake_left.png").convert(),
-                "right": pygame.image.load("snake_right.png").convert(),
+                "up": pygame.image.load("images/snake_up.png").convert(),
+                "down": pygame.image.load("images/snake_down.png").convert(),
+                "left": pygame.image.load("images/snake_left.png").convert(),
+                "right": pygame.image.load("images/snake_right.png").convert(),
             }
             self.surf = self.player_images["right"]
             self.surf.set_colorkey((255, 255, 255), RLEACCEL)
@@ -93,7 +93,7 @@ def runSnake():
     class Apple(pygame.sprite.Sprite):
         def __init__(self):
             super(Apple, self).__init__()
-            self.surf = pygame.image.load("apple.png").convert()
+            self.surf = pygame.image.load("images/apple.png").convert()
             self.surf.set_colorkey((255, 255, 255), RLEACCEL)
             self.radius = 10
             self.rect = self.surf.get_rect(center=(random.randint(self.radius, SCREEN_WIDTH - self.radius),

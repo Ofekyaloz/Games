@@ -2,93 +2,89 @@ import pygame
 from pygame.locals import *
 import random
 
-SCREEN_WIDTH = 400
+SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
+JUMP = 100
 game_records = []
 pygame.init()
 
-def runFlappyBird():
+
+def runDoodleJunp():
     class Player(pygame.sprite.Sprite):
         def __init__(self):
             super(Player, self).__init__()
+            original_image = pygame.image.load("images/doodle_jump_player.png").convert_alpha()
+            scaled_size = (original_image.get_width() // 4, original_image.get_height() // 4)
             self.player_images = {
-                0: pygame.image.load("images/yellowbird-downflap.png").convert(),
-                1: pygame.image.load("images/yellowbird-midflap.png").convert(),
-                2: pygame.image.load("images/yellowbird-upflap.png").convert(),
+                0: pygame.transform.scale(original_image, scaled_size),
+                1: pygame.transform.flip(pygame.transform.scale(original_image, scaled_size), True, False)
             }
+
             self.surf = self.player_images[0]
-            self.rect = self.surf.get_rect(center=(50, SCREEN_HEIGHT // 2))
+
+            self.rect = self.surf.get_rect(bottomleft=(SCREEN_WIDTH // 2, SCREEN_HEIGHT - 100))
             self.score = 0
             self.alive = True
-            self.pic = 0
-            self.rotation_angle = 0
+            self.jumpHeight = 50
+            self.jump = False
 
         def reset(self):
-            self.rect = self.surf.get_rect(center=(50, SCREEN_HEIGHT // 2))
+            self.rect = self.surf.get_rect(bottomleft=(SCREEN_WIDTH // 2, SCREEN_HEIGHT - 120))
             self.score = 0
             self.alive = True
-            self.rotation_angle = 0
             self.surf = self.player_images[0]
-            self.surf = pygame.transform.rotate(self.surf, self.rotation_angle)
-            self.pic = 0
 
         def update(self, pressed_keys):
-            x = 5
-            self.pic += 1
-            self.surf = self.player_images[self.pic % 3]
-            if pressed_keys[K_SPACE]:
-                if self.rotation_angle < 0:
-                    self.rotation_angle = 0
-                elif self.rotation_angle < 20:
-                    self.rotation_angle += 1
 
-                self.rect.move_ip(0, -x * 2)
-            else:
-                if self.rotation_angle <= 0:
-                    self.rotation_angle -= 1
+            if pressed_keys[K_RIGHT]:
+                self.rect.move_ip(5, 0)
+                self.surf = self.player_images[0]
+
+            if pressed_keys[K_LEFT]:
+                self.rect.move_ip(-5, 0)
+                self.surf = self.player_images[1]
+
+            if self.rect.left < 0:
+                self.rect.left = 0
+            elif self.rect.right > SCREEN_WIDTH:
+                self.rect.right = SCREEN_WIDTH
+
+            if self.jump:
+                if self.jumpHeight > 0:
+                    self.rect.move_ip(0, -5)
+                    self.jumpHeight -= 5
                 else:
-                    self.rotation_angle = 0
-
-                self.rect.move_ip(0, x)
-            self.surf = pygame.transform.rotate(self.surf, self.rotation_angle)
+                    self.jump = False
+                    self.jumpHeight = JUMP
+            else:
+                self.rect.move_ip(0, 10)
 
             if self.rect.top <= 0:
                 self.rect.top = 0
             elif self.rect.bottom >= SCREEN_HEIGHT:
                 self.alive = False
 
+        def playerjump(self):
+            self.jumpHeight = JUMP
+            self.jump = True
+
     class Obstacle(pygame.sprite.Sprite):
-        def __init__(self):
+        def __init__(self, rand):
             super(Obstacle, self).__init__()
-            topHeight = bottomHeight = 0
-            while True:
-                topHeight = random.randint(60, SCREEN_HEIGHT - 200)
-                bottomHeight = random.randint(0, topHeight - 59)
-                if SCREEN_HEIGHT // 2 <= topHeight + bottomHeight + 60 <= SCREEN_HEIGHT:
-                    break
-
-            self.surfTop = pygame.image.load("images/pipe-green.png").convert()
-            self.surfTop = pygame.transform.rotate(self.surfTop, 180)
-            self.surfTop.set_colorkey((255, 255, 255), RLEACCEL)
-            self.surfTop = pygame.transform.scale(self.surfTop, (30, topHeight))
-            self.rectTop = self.surfTop.get_rect(topleft=(SCREEN_WIDTH + 50, 0))
-
-            self.surfBottom = pygame.image.load("images/pipe-green.png").convert()
-            self.surfBottom.set_colorkey((255, 255, 255), RLEACCEL)
-            self.surfBottom = pygame.transform.scale(self.surfBottom, (30, bottomHeight))
-            self.rectBottom = self.surfBottom.get_rect(bottomleft=(SCREEN_WIDTH + 50, SCREEN_HEIGHT))
-
-            self.score = False
+            if rand:
+                self.surf = pygame.Surface((random.randint(100, 200), 10))
+                self.rect = self.surf.get_rect(
+                    center=(random.randint(20, SCREEN_WIDTH - 100), random.randint(10, SCREEN_HEIGHT)))
+            else:
+                self.surf = pygame.Surface((SCREEN_WIDTH, 10))
+                self.rect = self.surf.get_rect(bottomleft=(0, SCREEN_HEIGHT - 8))
+            self.surf.fill((255, 255, 255))
 
         def update(self):
-            self.rectTop.move_ip(-5, 0)
-            self.rectBottom.move_ip(-5, 0)
+            # self.rect.move_ip(-5, 0)
 
-            if not self.score and self.rectTop.right < 50:
+            if self.rect.top < 0:
                 player.score += 1
-                self.score = True
-
-            if self.rectTop.right < 0:
                 self.kill()
 
     class Cloud(pygame.sprite.Sprite):
@@ -134,7 +130,7 @@ def runFlappyBird():
 
     clock = pygame.time.Clock()
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-    pygame.display.set_caption('Flappy Bird by Ofek')
+    pygame.display.set_caption('DoodleJump by Ofek')
 
     ADDOBSTACLE = pygame.USEREVENT + 1
     pygame.time.set_timer(ADDOBSTACLE, 1100)
@@ -142,11 +138,13 @@ def runFlappyBird():
     pygame.time.set_timer(ADDCLOUD, 1500)
 
     obstacles = pygame.sprite.Group()
+    new_obstacle = Obstacle(False)
+    obstacles.add(new_obstacle)
+
     clouds = pygame.sprite.Group()
     player = Player()
 
     run_game = True
-    running = True
     pause = False
 
     numbers = {}
@@ -177,7 +175,7 @@ def runFlappyBird():
 
             elif event.type == ADDOBSTACLE:
                 # Create the new enemy, and add it to our sprite groups
-                new_obstacle = Obstacle()
+                new_obstacle = Obstacle(True)
                 obstacles.add(new_obstacle)
 
             elif event.type == ADDCLOUD:
@@ -205,15 +203,14 @@ def runFlappyBird():
         screen.fill((135, 206, 250))
 
         for obstacle in obstacles:
-            if player.rect.colliderect(obstacle.rectTop) or player.rect.colliderect(obstacle.rectBottom):
-                player.alive = False
+            if player.rect.colliderect(obstacle):
+                player.playerjump()
 
         for cloud in clouds:
             screen.blit(cloud.surf, cloud.rect)
 
         for entity in obstacles:
-            screen.blit(entity.surfTop, entity.rectTop)
-            screen.blit(entity.surfBottom, entity.rectBottom)
+            screen.blit(entity.surf, entity.rect)
 
         screen.blit(player.surf, player.rect)
 
@@ -274,11 +271,15 @@ def runFlappyBird():
                             player.reset()
                             for ob in obstacles:
                                 ob.kill()
+                            new_obstacle = Obstacle(False)
+                            obstacles.add(new_obstacle)
                             for cloud in clouds:
                                 cloud.kill()
 
-
-                    # Did the user click the window close button? If so, stop the loop
                     elif event.type == QUIT:
                         running = True
                         run_game = False
+
+
+if __name__ == '__main__':
+    runDoodleJunp()
