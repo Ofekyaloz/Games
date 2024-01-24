@@ -5,11 +5,12 @@ import random
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 JUMP = 100
+SPEED = 8
 game_records = []
 pygame.init()
 
 
-def runDoodleJunp():
+def runDoodleJump():
     class Player(pygame.sprite.Sprite):
         def __init__(self):
             super(Player, self).__init__()
@@ -27,12 +28,14 @@ def runDoodleJunp():
             self.alive = True
             self.jumpHeight = 50
             self.jump = False
+            self.on_obstacle = False  # New attribute to track if the player is on an obstacle
 
         def reset(self):
             self.rect = self.surf.get_rect(bottomleft=(SCREEN_WIDTH // 2, SCREEN_HEIGHT - 120))
             self.score = 0
             self.alive = True
             self.surf = self.player_images[0]
+            self.on_obstacle = False  # Reset the on_obstacle attribute
 
         def update(self, pressed_keys):
 
@@ -51,39 +54,39 @@ def runDoodleJunp():
 
             if self.jump:
                 if self.jumpHeight > 0:
-                    self.rect.move_ip(0, -5)
-                    self.jumpHeight -= 5
+                    self.rect.move_ip(0, -SPEED)
+                    self.jumpHeight -= SPEED
                 else:
                     self.jump = False
                     self.jumpHeight = JUMP
             else:
-                self.rect.move_ip(0, 10)
+                self.rect.move_ip(0, SPEED)
 
-            if self.rect.top <= 0:
-                self.rect.top = 0
-            elif self.rect.bottom >= SCREEN_HEIGHT:
-                self.alive = False
+            if not self.on_obstacle:  # Only check for collision when not already on an obstacle
+                if self.rect.top <= 0:
+                    self.rect.top = 0
+                elif self.rect.bottom >= SCREEN_HEIGHT:
+                    self.alive = False
 
-        def playerjump(self):
+        def player_jump(self):
             self.jumpHeight = JUMP
             self.jump = True
 
     class Obstacle(pygame.sprite.Sprite):
-        def __init__(self, rand):
+        def __init__(self, is_starting_obstacle=False):
             super(Obstacle, self).__init__()
-            if rand:
+            if is_starting_obstacle:
                 self.surf = pygame.Surface((random.randint(100, 200), 10))
                 self.rect = self.surf.get_rect(
                     center=(random.randint(20, SCREEN_WIDTH - 100), random.randint(10, SCREEN_HEIGHT)))
             else:
                 self.surf = pygame.Surface((SCREEN_WIDTH, 10))
                 self.rect = self.surf.get_rect(bottomleft=(0, SCREEN_HEIGHT - 8))
-            self.surf.fill((255, 255, 255))
+            self.surf.fill((0, 0, 0))
 
         def update(self):
-            # self.rect.move_ip(-5, 0)
-
-            if self.rect.top < 0:
+            self.rect.move_ip(0, SPEED)  # Move the obstacle up
+            if self.rect.bottom > SCREEN_HEIGHT:
                 player.score += 1
                 self.kill()
 
@@ -167,8 +170,6 @@ def runDoodleJunp():
                     else:
                         pygame.time.set_timer(ADDOBSTACLE, 1000)  # Enable the obstacle event with the desired interval
 
-
-
             # Did the user click the window close button? If so, stop the loop
             elif event.type == QUIT:
                 run_game = False
@@ -197,14 +198,22 @@ def runDoodleJunp():
         pressed_keys = pygame.key.get_pressed()
         player.update(pressed_keys)
         running = player.alive
-        obstacles.update()
+        if player.rect.bottom < SCREEN_HEIGHT // 2:
+            obstacles.update()
         clouds.update()
 
         screen.fill((135, 206, 250))
 
         for obstacle in obstacles:
-            if player.rect.colliderect(obstacle):
-                player.playerjump()
+            if player.rect.colliderect(obstacle) and player.rect.bottom >= obstacle.rect.top > player.rect.top:
+                if not player.jump and player.rect.bottom <= obstacle.rect.bottom:
+                    # Only jump if the player is not already jumping and is on top of the obstacle
+                    player.player_jump()
+                    player.on_obstacle = True
+                else:
+                    player.on_obstacle = False
+            else:
+                player.on_obstacle = False
 
         for cloud in clouds:
             screen.blit(cloud.surf, cloud.rect)
@@ -282,4 +291,4 @@ def runDoodleJunp():
 
 
 if __name__ == '__main__':
-    runDoodleJunp()
+    runDoodleJump()
