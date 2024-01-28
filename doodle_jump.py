@@ -14,7 +14,7 @@ def runDoodleJump():
     class Player(pygame.sprite.Sprite):
         def __init__(self):
             super(Player, self).__init__()
-            original_image = pygame.image.load("images/doodle_jump_player.png").convert_alpha()
+            original_image = pygame.image.load("images/doodle_jump.png").convert_alpha()
             scaled_size = (original_image.get_width() // 4, original_image.get_height() // 4)
             self.player_images = {
                 0: pygame.transform.scale(original_image, scaled_size),
@@ -40,17 +40,17 @@ def runDoodleJump():
         def update(self, pressed_keys):
 
             if pressed_keys[K_RIGHT]:
-                self.rect.move_ip(5, 0)
+                self.rect.move_ip(SPEED, 0)
                 self.surf = self.player_images[0]
 
             if pressed_keys[K_LEFT]:
-                self.rect.move_ip(-5, 0)
+                self.rect.move_ip(-SPEED, 0)
                 self.surf = self.player_images[1]
 
-            if self.rect.left < 0:
-                self.rect.left = 0
-            elif self.rect.right > SCREEN_WIDTH:
-                self.rect.right = SCREEN_WIDTH
+            if self.rect.right < 10:
+                self.rect.left = SCREEN_WIDTH - 10
+            elif self.rect.left > SCREEN_WIDTH - 10:
+                self.rect.right = 10
 
             if self.jump:
                 if self.jumpHeight > 0:
@@ -68,28 +68,32 @@ def runDoodleJump():
                 elif self.rect.bottom >= SCREEN_HEIGHT:
                     self.alive = False
 
-        def player_jump(self):
-            self.jumpHeight = JUMP
+        def player_jump(self, height=JUMP):
+            self.jumpHeight = height
             self.jump = True
 
     class Obstacle(pygame.sprite.Sprite):
-        def __init__(self, is_starting_obstacle=False):
+        def __init__(self, is_starting_obstacle=False, speed=SPEED, jump=JUMP):
             super(Obstacle, self).__init__()
+            self.speed = speed
+            self.jump = jump
             if is_starting_obstacle:
                 self.surf = pygame.Surface((random.randint(100, 200), 10))
                 self.rect = self.surf.get_rect(
-                    center=(random.randint(20, SCREEN_WIDTH - 100), random.randint(10, SCREEN_HEIGHT)))
+                    center=(random.randint(20, SCREEN_WIDTH - 100), player.rect.bottom - random.randint(0, JUMP // 2)))
             else:
                 self.surf = pygame.Surface((SCREEN_WIDTH, 10))
                 self.rect = self.surf.get_rect(bottomleft=(0, SCREEN_HEIGHT - 8))
             self.surf.fill((0, 0, 0))
 
         def update(self):
-            self.rect.move_ip(0, SPEED)  # Move the obstacle up
+            self.rect.move_ip(0, self.speed)
             if self.rect.bottom > SCREEN_HEIGHT:
                 player.score += 1
                 self.kill()
 
+        def get_jump_height(self):
+            return self.jump
     class Cloud(pygame.sprite.Sprite):
         def __init__(self):
             super(Cloud, self).__init__()
@@ -131,6 +135,13 @@ def runDoodleJump():
 
         return score_surface
 
+    def addObstacles():
+        obstacles = []
+        for i in range(10):
+            obstacles.append(Obstacle())
+        return obstacles
+
+
     clock = pygame.time.Clock()
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption('DoodleJump by Ofek')
@@ -139,6 +150,7 @@ def runDoodleJump():
     pygame.time.set_timer(ADDOBSTACLE, 1100)
     ADDCLOUD = pygame.USEREVENT + 2
     pygame.time.set_timer(ADDCLOUD, 1500)
+    # pygame.event.post(ADDOBSTACLE)
 
     obstacles = pygame.sprite.Group()
     new_obstacle = Obstacle(False)
@@ -167,8 +179,11 @@ def runDoodleJump():
                     pause = not pause
                     if pause:
                         pygame.time.set_timer(ADDOBSTACLE, 0)  # Disable the obstacle event
+                        pygame.time.set_timer(ADDCLOUD, 0)
                     else:
                         pygame.time.set_timer(ADDOBSTACLE, 1000)  # Enable the obstacle event with the desired interval
+                        pygame.time.set_timer(ADDCLOUD, 1500)
+
 
             # Did the user click the window close button? If so, stop the loop
             elif event.type == QUIT:
@@ -208,7 +223,7 @@ def runDoodleJump():
             if player.rect.colliderect(obstacle) and player.rect.bottom >= obstacle.rect.top > player.rect.top:
                 if not player.jump and player.rect.bottom <= obstacle.rect.bottom:
                     # Only jump if the player is not already jumping and is on top of the obstacle
-                    player.player_jump()
+                    player.player_jump(obstacle.get_jump_height())
                     player.on_obstacle = True
                 else:
                     player.on_obstacle = False

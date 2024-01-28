@@ -146,7 +146,6 @@ def runFlappyBird():
     player = Player()
 
     run_game = True
-    running = True
     pause = False
 
     numbers = {}
@@ -162,12 +161,12 @@ def runFlappyBird():
                 if event.key == K_ESCAPE:
                     run_game = False
 
-                if event.key == K_p:
-                    pause = not pause
-                    if pause:
-                        pygame.time.set_timer(ADDOBSTACLE, 0)  # Disable the obstacle event
-                    else:
-                        pygame.time.set_timer(ADDOBSTACLE, 1000)  # Enable the obstacle event with the desired interval
+                if pause:
+                    pygame.time.set_timer(ADDOBSTACLE, 0)  # Disable the obstacle event
+                    pygame.time.set_timer(ADDCLOUD, 0)
+                else:
+                    pygame.time.set_timer(ADDOBSTACLE, 1000)  # Enable the obstacle event with the desired interval
+                    pygame.time.set_timer(ADDCLOUD, 1500)
 
 
 
