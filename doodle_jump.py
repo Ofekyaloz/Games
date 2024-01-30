@@ -28,14 +28,14 @@ def runDoodleJump():
             self.alive = True
             self.jumpHeight = 50
             self.jump = False
-            self.on_obstacle = False  # New attribute to track if the player is on an obstacle
+            self.on_obstacle = False
 
         def reset(self):
             self.rect = self.surf.get_rect(bottomleft=(SCREEN_WIDTH // 2, SCREEN_HEIGHT - 120))
             self.score = 0
             self.alive = True
             self.surf = self.player_images[0]
-            self.on_obstacle = False  # Reset the on_obstacle attribute
+            self.on_obstacle = False
 
         def update(self, pressed_keys):
 
@@ -69,22 +69,27 @@ def runDoodleJump():
                     self.alive = False
 
         def player_jump(self, height=JUMP):
-            self.jumpHeight = height
+            if height > self.jumpHeight:
+                self.jumpHeight = height
             self.jump = True
 
-    class Obstacle(pygame.sprite.Sprite):
-        def __init__(self, is_starting_obstacle=False, speed=SPEED, jump=JUMP):
-            super(Obstacle, self).__init__()
+    class Block(pygame.sprite.Sprite):
+        def __init__(self, x, y, width=None, speed=SPEED, jump=JUMP):
+            super(Block, self).__init__()
             self.speed = speed
             self.jump = jump
-            if is_starting_obstacle:
-                self.surf = pygame.Surface((random.randint(100, 200), 10))
-                self.rect = self.surf.get_rect(
-                    center=(random.randint(20, SCREEN_WIDTH - 100), player.rect.bottom - random.randint(0, JUMP // 2)))
-            else:
-                self.surf = pygame.Surface((SCREEN_WIDTH, 10))
-                self.rect = self.surf.get_rect(bottomleft=(0, SCREEN_HEIGHT - 8))
+
+            if not width:
+                width = random.randint(100, 200)
+            if x + width > SCREEN_WIDTH or x < 0:
+                x = random.randint(0, SCREEN_WIDTH - 100)
+
+            self.surf = pygame.Surface((width, 10))
+            self.rect = self.surf.get_rect(bottomleft=(x, y))
             self.surf.fill((0, 0, 0))
+
+        def get_rect(self):
+            return self.rect
 
         def update(self):
             self.rect.move_ip(0, self.speed)
@@ -94,6 +99,23 @@ def runDoodleJump():
 
         def get_jump_height(self):
             return self.jump
+
+    class SuperBlock(Block):
+        def __init__(self, x=None, y=None):
+            super().__init__(x=x, y=y, jump=int(JUMP * 1.5))
+            hex_color = "#33FFCC"
+            rgb_color = pygame.Color(hex_color)
+            self.surf.fill(rgb_color)
+
+    class BrokenBlock(Block):
+        def __init__(self, x=None, y=None):
+            super().__init__(x=x, y=y)
+            self.surf.fill((128, 128, 128))
+
+        def get_jump_height(self):
+            self.kill()
+            return self.jump
+
     class Cloud(pygame.sprite.Sprite):
         def __init__(self):
             super(Cloud, self).__init__()
@@ -135,29 +157,69 @@ def runDoodleJump():
 
         return score_surface
 
-    def addObstacles():
-        obstacles = []
-        for i in range(10):
-            obstacles.append(Obstacle())
-        return obstacles
+    def getXY(last_x, last_y):
+        x = last_x + random.randint(JUMP * 2, JUMP * 3) if random.randint(0, 1) == 0 else last_x - random.randint(
+            JUMP * 2, JUMP * 3)
+        if x > SCREEN_WIDTH:
+            x = last_x - random.randint(20, JUMP)
+        elif x < 0:
+            x = last_x - random.randint(20, JUMP)
+        y = last_y - random.randint(10, JUMP - 10)
+        return x, y
 
+    def add_start_obstacles():
+        new_obstacles = [Block(x=0, y=SCREEN_HEIGHT, width=SCREEN_WIDTH)]
+        num = random.randint(8, 12)
+        last_y = random.randint(SCREEN_HEIGHT - JUMP, SCREEN_HEIGHT - 1)
+        last_x = random.randint(0, SCREEN_WIDTH // 2 - JUMP) if random.randint(0, 1) == 0 else random.randint(SCREEN_WIDTH // 2 - JUMP, SCREEN_WIDTH)
+        new_obstacles.append(Block(x=last_x, y=last_y))
+        for i in range(num):
+            x, y = getXY(last_x, last_y)
+            new_obstacles.append(Block(x=x, y=y))
+            last_x = x
+            last_y = y
+
+        x, y = getXY(last_x, last_y)
+        new_obstacles.append(SuperBlock(x=x, y=y))
+        last_x = x
+        last_y = y
+        x, y = getXY(last_x, last_y)
+        new_obstacles.append(BrokenBlock(x=x, y=y))
+        return new_obstacles
+
+    def add_middle_blocks():
+        middle_blocks = []
+        last_x = SCREEN_WIDTH // 2 - JUMP if random.randint(0, 1) % 2 == 0 else SCREEN_WIDTH // 2 + JUMP
+        last_y = 0
+        for _ in range(3):
+            x, y = getXY(last_x, last_y)
+            last_x = x
+            last_y = y
+            middle_blocks.append(Block(x=x, y=y))
+
+        if random.randint(0, 4) % 4 == 0:
+            x, y = getXY(last_x, last_y)
+            last_x = x
+            last_y = y
+            middle_blocks.append(SuperBlock(x=x, y=y))
+        if random.randint(0, 4) % 3 == 0:
+            x, y = getXY(last_x, last_y)
+            middle_blocks.append(BrokenBlock(x=x, y=y))
+
+        return middle_blocks
 
     clock = pygame.time.Clock()
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption('DoodleJump by Ofek')
 
-    ADDOBSTACLE = pygame.USEREVENT + 1
-    pygame.time.set_timer(ADDOBSTACLE, 1100)
-    ADDCLOUD = pygame.USEREVENT + 2
+    ADDCLOUD = pygame.USEREVENT + 1
     pygame.time.set_timer(ADDCLOUD, 1500)
-    # pygame.event.post(ADDOBSTACLE)
+    player = Player()
 
     obstacles = pygame.sprite.Group()
-    new_obstacle = Obstacle(False)
-    obstacles.add(new_obstacle)
+    obstacles.add(add_start_obstacles())
 
     clouds = pygame.sprite.Group()
-    player = Player()
 
     run_game = True
     pause = False
@@ -178,21 +240,14 @@ def runDoodleJump():
                 if event.key == K_p:
                     pause = not pause
                     if pause:
-                        pygame.time.set_timer(ADDOBSTACLE, 0)  # Disable the obstacle event
                         pygame.time.set_timer(ADDCLOUD, 0)
                     else:
-                        pygame.time.set_timer(ADDOBSTACLE, 1000)  # Enable the obstacle event with the desired interval
                         pygame.time.set_timer(ADDCLOUD, 1500)
 
 
             # Did the user click the window close button? If so, stop the loop
             elif event.type == QUIT:
                 run_game = False
-
-            elif event.type == ADDOBSTACLE:
-                # Create the new enemy, and add it to our sprite groups
-                new_obstacle = Obstacle(True)
-                obstacles.add(new_obstacle)
 
             elif event.type == ADDCLOUD:
                 # Create the new cloud, and add it to our sprite groups
@@ -213,11 +268,21 @@ def runDoodleJump():
         pressed_keys = pygame.key.get_pressed()
         player.update(pressed_keys)
         running = player.alive
-        if player.rect.bottom < SCREEN_HEIGHT // 2:
+        if player.rect.bottom < SCREEN_HEIGHT // 2 and not player.on_middle_blocks:
             obstacles.update()
+            obstacles.add(add_middle_blocks())
+            player.on_middle_blocks = True
+        elif player.rect.bottom >= SCREEN_HEIGHT // 2:
+            player.on_middle_blocks = False
+            all_obstacles = obstacles.sprites()
+            if len(all_obstacles) and all_obstacles[-2].get_rect().y - all_obstacles[-1].get_rect().y >= JUMP:
+                obstacles.add((add_middle_blocks()))
+        else:
+            obstacles.update()
+
         clouds.update()
 
-        screen.fill((135, 206, 250))
+        screen.fill((56, 56, 56))  # 135 206 250
 
         for obstacle in obstacles:
             if player.rect.colliderect(obstacle) and player.rect.bottom >= obstacle.rect.top > player.rect.top:
@@ -295,8 +360,8 @@ def runDoodleJump():
                             player.reset()
                             for ob in obstacles:
                                 ob.kill()
-                            new_obstacle = Obstacle(False)
-                            obstacles.add(new_obstacle)
+                            obstacles.add(add_start_obstacles())
+
                             for cloud in clouds:
                                 cloud.kill()
 
