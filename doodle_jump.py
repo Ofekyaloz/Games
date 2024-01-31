@@ -13,6 +13,7 @@ last_x, last_y = 0, 0
 
 def runDoodleJump():
     global last_x, last_y
+
     class Player(pygame.sprite.Sprite):
         def __init__(self):
             super(Player, self).__init__()
@@ -93,8 +94,11 @@ def runDoodleJump():
         def get_rect(self):
             return self.rect
 
-        def update(self):
-            self.rect.move_ip(0, self.speed)
+        def update(self, speed=None):
+            if speed is not None:
+                self.rect.move_ip(0, speed)
+            else:
+                self.rect.move_ip(0, self.speed)
             if self.rect.bottom > SCREEN_HEIGHT:
                 player.score += 1
                 self.kill()
@@ -192,7 +196,7 @@ def runDoodleJump():
 
     def add_middle_blocks():
         middle_blocks = []
-        for _ in range(3):
+        for _ in range(4):
             x, y = getXY()
             middle_blocks.append(Block(x=x, y=y))
 
@@ -206,12 +210,22 @@ def runDoodleJump():
 
         return middle_blocks
 
+    def set_game(add_start_obstacles, clouds, obstacles, player):
+        player.reset()
+        for ob in obstacles:
+            ob.kill()
+        obstacles.add(add_start_obstacles())
+        for cloud in clouds:
+            cloud.kill()
+
     clock = pygame.time.Clock()
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption('DoodleJump by Ofek')
 
     ADDCLOUD = pygame.USEREVENT + 1
     pygame.time.set_timer(ADDCLOUD, 1500)
+    BLOCKTIMER = pygame.USEREVENT + 2
+    pygame.time.set_timer(BLOCKTIMER, 500)
     player = Player()
 
     obstacles = pygame.sprite.Group()
@@ -221,7 +235,8 @@ def runDoodleJump():
 
     run_game = True
     pause = False
-
+    block_speed = 0
+    next_score_update = 10
     numbers = {}
     for i in range(10):
         numbers[i] = pygame.image.load("pic\\" + str(i) + ".png").convert()
@@ -239,14 +254,21 @@ def runDoodleJump():
                     pause = not pause
                     if pause:
                         pygame.time.set_timer(ADDCLOUD, 0)
+                        pygame.time.set_timer(BLOCKTIMER, 0)
+
                     else:
                         pygame.time.set_timer(ADDCLOUD, 1500)
+                        pygame.time.set_timer(BLOCKTIMER, 500)
+
 
 
             # Did the user click the window close button? If so, stop the loop
             elif event.type == QUIT:
                 run_game = False
 
+            elif event.type == BLOCKTIMER:
+                obstacles.update(block_speed)
+                last_y += SPEED
             elif event.type == ADDCLOUD:
                 # Create the new cloud, and add it to our sprite groups
                 new_cloud = Cloud()
@@ -262,6 +284,10 @@ def runDoodleJump():
             clock.tick(30)
             continue
 
+
+        while last_y > 0:
+            obstacles.add(add_middle_blocks())
+
         # Get the set of keys pressed and check for user input
         pressed_keys = pygame.key.get_pressed()
         player.update(pressed_keys)
@@ -276,7 +302,6 @@ def runDoodleJump():
         else:
             obstacles.update()
             last_y += SPEED
-
 
         clouds.update()
 
@@ -304,6 +329,11 @@ def runDoodleJump():
         score_image = render_score(player.score)
         score_rect = score_image.get_rect(center=(SCREEN_WIDTH // 2, 30))
         screen.blit(score_image, score_rect)
+
+        if player.score >= next_score_update:
+            if block_speed < 38:
+                next_score_update += 5
+                block_speed += 2
 
         # Flip everything to the display
         pygame.display.flip()
@@ -354,14 +384,11 @@ def runDoodleJump():
                             run_game = False
 
                         if event.key == K_RETURN or event.key == K_KP_ENTER:
+                            set_game(add_start_obstacles, clouds, obstacles, player)
                             running = True
-                            player.reset()
-                            for ob in obstacles:
-                                ob.kill()
-                            obstacles.add(add_start_obstacles())
+                            block_speed = 0
+                            next_score_update = 10
 
-                            for cloud in clouds:
-                                cloud.kill()
 
                     elif event.type == QUIT:
                         running = True
