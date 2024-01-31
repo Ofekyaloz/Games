@@ -8,9 +8,11 @@ JUMP = 100
 SPEED = 8
 game_records = []
 pygame.init()
+last_x, last_y = 0, 0
 
 
 def runDoodleJump():
+    global last_x, last_y
     class Player(pygame.sprite.Sprite):
         def __init__(self):
             super(Player, self).__init__()
@@ -157,53 +159,49 @@ def runDoodleJump():
 
         return score_surface
 
-    def getXY(last_x, last_y):
+    def getXY():
+        global last_x, last_y
         x = last_x + random.randint(JUMP * 2, JUMP * 3) if random.randint(0, 1) == 0 else last_x - random.randint(
             JUMP * 2, JUMP * 3)
         if x > SCREEN_WIDTH:
             x = last_x - random.randint(20, JUMP)
         elif x < 0:
             x = last_x - random.randint(20, JUMP)
+
         y = last_y - random.randint(10, JUMP - 10)
+        last_x, last_y = x, y
         return x, y
 
     def add_start_obstacles():
+        global last_x, last_y
         new_obstacles = [Block(x=0, y=SCREEN_HEIGHT, width=SCREEN_WIDTH)]
         num = random.randint(8, 12)
         last_y = random.randint(SCREEN_HEIGHT - JUMP, SCREEN_HEIGHT - 1)
-        last_x = random.randint(0, SCREEN_WIDTH // 2 - JUMP) if random.randint(0, 1) == 0 else random.randint(SCREEN_WIDTH // 2 - JUMP, SCREEN_WIDTH)
+        last_x = random.randint(0, SCREEN_WIDTH // 2 - JUMP) if random.randint(0, 1) == 0 else random.randint(
+            SCREEN_WIDTH // 2 - JUMP, SCREEN_WIDTH)
         new_obstacles.append(Block(x=last_x, y=last_y))
         for i in range(num):
-            x, y = getXY(last_x, last_y)
+            x, y = getXY()
             new_obstacles.append(Block(x=x, y=y))
-            last_x = x
-            last_y = y
 
-        x, y = getXY(last_x, last_y)
+        x, y = getXY()
         new_obstacles.append(SuperBlock(x=x, y=y))
-        last_x = x
-        last_y = y
-        x, y = getXY(last_x, last_y)
+        x, y = getXY()
         new_obstacles.append(BrokenBlock(x=x, y=y))
         return new_obstacles
 
     def add_middle_blocks():
         middle_blocks = []
-        last_x = SCREEN_WIDTH // 2 - JUMP if random.randint(0, 1) % 2 == 0 else SCREEN_WIDTH // 2 + JUMP
-        last_y = 0
         for _ in range(3):
-            x, y = getXY(last_x, last_y)
-            last_x = x
-            last_y = y
+            x, y = getXY()
             middle_blocks.append(Block(x=x, y=y))
 
         if random.randint(0, 4) % 4 == 0:
-            x, y = getXY(last_x, last_y)
-            last_x = x
-            last_y = y
+            x, y = getXY()
+
             middle_blocks.append(SuperBlock(x=x, y=y))
         if random.randint(0, 4) % 3 == 0:
-            x, y = getXY(last_x, last_y)
+            x, y = getXY()
             middle_blocks.append(BrokenBlock(x=x, y=y))
 
         return middle_blocks
@@ -270,15 +268,15 @@ def runDoodleJump():
         running = player.alive
         if player.rect.bottom < SCREEN_HEIGHT // 2 and not player.on_middle_blocks:
             obstacles.update()
+            last_y += SPEED
             obstacles.add(add_middle_blocks())
             player.on_middle_blocks = True
         elif player.rect.bottom >= SCREEN_HEIGHT // 2:
             player.on_middle_blocks = False
-            all_obstacles = obstacles.sprites()
-            if len(all_obstacles) and all_obstacles[-2].get_rect().y - all_obstacles[-1].get_rect().y >= JUMP:
-                obstacles.add((add_middle_blocks()))
         else:
             obstacles.update()
+            last_y += SPEED
+
 
         clouds.update()
 
