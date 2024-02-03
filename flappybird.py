@@ -150,7 +150,7 @@ def runFlappyBird():
 
     numbers = {}
     for i in range(10):
-        numbers[i] = pygame.image.load("pic\\" + str(i) + ".png").convert()
+        numbers[i] = pygame.image.load("nums\\" + str(i) + ".png").convert()
 
     while run_game:
         # Look at every event in the queue

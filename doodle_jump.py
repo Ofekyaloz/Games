@@ -7,8 +7,8 @@ SCREEN_HEIGHT = 600
 JUMP = 100
 SPEED = 8
 game_records = []
-pygame.init()
 last_x, last_y = 0, 0
+pygame.init()
 
 
 def runDoodleJump():
@@ -40,13 +40,13 @@ def runDoodleJump():
             self.surf = self.player_images[0]
             self.on_obstacle = False
 
-        def update(self, pressed_keys):
+        def update(self, key):
 
-            if pressed_keys[K_RIGHT]:
+            if key[K_RIGHT]:
                 self.rect.move_ip(SPEED, 0)
                 self.surf = self.player_images[0]
 
-            if pressed_keys[K_LEFT]:
+            if key[K_LEFT]:
                 self.rect.move_ip(-SPEED, 0)
                 self.surf = self.player_images[1]
 
@@ -84,18 +84,21 @@ def runDoodleJump():
 
             if not width:
                 width = random.randint(100, 200)
-            if x + width > SCREEN_WIDTH or x < 0:
-                x = random.randint(0, SCREEN_WIDTH - 100)
 
-            self.surf = pygame.Surface((width, 10))
+            if x + width > SCREEN_WIDTH:
+                x -= (x + width - SCREEN_WIDTH)
+
+            original_image = pygame.image.load("images/block.png").convert_alpha()
+            self.surf = pygame.transform.scale(original_image, (width, 12))
             self.rect = self.surf.get_rect(bottomleft=(x, y))
-            self.surf.fill((0, 0, 0))
 
         def get_rect(self):
             return self.rect
 
-        def update(self, speed=None):
-            if speed is not None:
+        def update(self, speed=None, stop=False):
+            if stop:
+                pass
+            elif speed is not None:
                 self.rect.move_ip(0, speed)
             else:
                 self.rect.move_ip(0, self.speed)
@@ -108,19 +111,58 @@ def runDoodleJump():
 
     class SuperBlock(Block):
         def __init__(self, x=None, y=None):
-            super().__init__(x=x, y=y, jump=int(JUMP * 1.5))
-            hex_color = "#33FFCC"
-            rgb_color = pygame.Color(hex_color)
-            self.surf.fill(rgb_color)
+            super().__init__(x=x, y=y, jump=JUMP * 2)
+            width = random.randint(100, 200)
+            if x + width > SCREEN_WIDTH:
+                x -= (x + width - SCREEN_WIDTH)
+            original_image = pygame.image.load("images/super_block.png").convert_alpha()
+            self.surf = pygame.transform.scale(original_image, (width, 12))
 
-    class BrokenBlock(Block):
-        def __init__(self, x=None, y=None):
-            super().__init__(x=x, y=y)
-            self.surf.fill((128, 128, 128))
+    class BrokenBlock(pygame.sprite.Sprite):
+        def __init__(self, x=None, y=None, speed=SPEED, jump=JUMP):
+            super().__init__()
+            width = random.randint(100, 200)
+            self.images = [pygame.image.load("images/p-brown-1.png").convert_alpha(),
+                           pygame.image.load("images/p-brown-2.png").convert_alpha(),
+                           pygame.image.load("images/p-brown-3.png").convert_alpha(),
+                           pygame.image.load("images/p-brown-4.png").convert_alpha(),
+                           pygame.image.load("images/p-brown-5.png").convert_alpha(),
+                           pygame.image.load("images/p-brown-6.png").convert_alpha()]
+
+            if x + width > SCREEN_WIDTH:
+                x -= (x + width - SCREEN_WIDTH)
+
+            for j in range(len(self.images)):
+                self.images[j] = pygame.transform.scale(self.images[j], (width, 12))
+
+            self.image_index = 0
+            self.surf = self.images[self.image_index]
+            self.rect = self.surf.get_rect(bottomleft=(x, y))
+            self.is_broken = False
+            self.jump = jump
+            self.speed = speed
 
         def get_jump_height(self):
-            self.kill()
-            return self.jump
+            if not self.is_broken:
+                self.is_broken = True
+                return self.jump
+
+        def update(self, speed=None, stop=False):
+            if not self.is_broken:
+                if stop:
+                    pass
+                elif speed is not None:
+                    self.rect.move_ip(0, speed)
+                else:
+                    self.rect.move_ip(0, self.speed)
+                if self.rect.bottom > SCREEN_HEIGHT:
+                    player.score += 1
+                    self.kill()
+            elif self.image_index == len(self.images):
+                self.kill()
+            else:
+                self.surf = self.images[self.image_index]
+                self.image_index += 1
 
     class Cloud(pygame.sprite.Sprite):
         def __init__(self):
@@ -135,15 +177,13 @@ def runDoodleJump():
                 )
             )
 
-        # Move the cloud based on a constant speed
-        # Remove it when it passes the left edge of the screen
         def update(self):
             self.rect.move_ip(-4, 0)
             if self.rect.right < 0:
                 self.kill()
 
-    def render_score(score):
-        score_str = str(score)
+    def render_score(score_num):
+        score_str = str(score_num)
         digit_height = numbers[0].get_height()  # Assuming all digit images have the same height
         digit_width = numbers[0].get_width()  # Assuming all digit images have the same width
 
@@ -165,14 +205,14 @@ def runDoodleJump():
 
     def getXY():
         global last_x, last_y
-        x = last_x + random.randint(JUMP * 2, JUMP * 3) if random.randint(0, 1) == 0 else last_x - random.randint(
-            JUMP * 2, JUMP * 3)
+        x = last_x + random.randint(JUMP // 2, JUMP * 2) if random.randint(0, 1) == 0 else last_x - random.randint(
+            JUMP // 2, JUMP * 2)
         if x > SCREEN_WIDTH:
             x = last_x - random.randint(20, JUMP)
         elif x < 0:
-            x = last_x - random.randint(20, JUMP)
+            x = last_x + random.randint(20, JUMP)
 
-        y = last_y - random.randint(10, JUMP - 10)
+        y = last_y - random.randint(20, JUMP - 20)
         last_x, last_y = x, y
         return x, y
 
@@ -180,11 +220,11 @@ def runDoodleJump():
         global last_x, last_y
         new_obstacles = [Block(x=0, y=SCREEN_HEIGHT, width=SCREEN_WIDTH)]
         num = random.randint(8, 12)
-        last_y = random.randint(SCREEN_HEIGHT - JUMP, SCREEN_HEIGHT - 1)
+        last_y = SCREEN_HEIGHT - JUMP + 10
         last_x = random.randint(0, SCREEN_WIDTH // 2 - JUMP) if random.randint(0, 1) == 0 else random.randint(
             SCREEN_WIDTH // 2 - JUMP, SCREEN_WIDTH)
         new_obstacles.append(Block(x=last_x, y=last_y))
-        for i in range(num):
+        for _ in range(num):
             x, y = getXY()
             new_obstacles.append(Block(x=x, y=y))
 
@@ -200,23 +240,23 @@ def runDoodleJump():
             x, y = getXY()
             middle_blocks.append(Block(x=x, y=y))
 
-        if random.randint(0, 4) % 4 == 0:
-            x, y = getXY()
+        new_choice = random.randint(0, 4)
+        if new_choice % 4 == 1:
+            if new_choice == 0:
+                middle_blocks.append(SuperBlock(x=random.randint(0, SCREEN_WIDTH), y=last_y))
+            elif new_choice == 1:
+                middle_blocks.append(BrokenBlock(x=random.randint(0, SCREEN_WIDTH), y=last_y))
+            else:
+                middle_blocks.append(Block(x=random.randint(0, SCREEN_WIDTH), y=last_y))
 
+        if random.randint(0, 4) % 4 == 1:
+            x, y = getXY()
             middle_blocks.append(SuperBlock(x=x, y=y))
         if random.randint(0, 4) % 3 == 0:
             x, y = getXY()
             middle_blocks.append(BrokenBlock(x=x, y=y))
 
         return middle_blocks
-
-    def set_game(add_start_obstacles, clouds, obstacles, player):
-        player.reset()
-        for ob in obstacles:
-            ob.kill()
-        obstacles.add(add_start_obstacles())
-        for cloud in clouds:
-            cloud.kill()
 
     clock = pygame.time.Clock()
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -236,10 +276,11 @@ def runDoodleJump():
     run_game = True
     pause = False
     block_speed = 0
+    elapsed_time = 0
     next_score_update = 10
     numbers = {}
     for i in range(10):
-        numbers[i] = pygame.image.load("pic\\" + str(i) + ".png").convert()
+        numbers[i] = pygame.image.load("nums\\" + str(i) + ".png").convert()
 
     while run_game:
         # Look at every event in the queue
@@ -255,12 +296,13 @@ def runDoodleJump():
                     if pause:
                         pygame.time.set_timer(ADDCLOUD, 0)
                         pygame.time.set_timer(BLOCKTIMER, 0)
+                        elapsed_time += clock.tick()
 
                     else:
                         pygame.time.set_timer(ADDCLOUD, 1500)
                         pygame.time.set_timer(BLOCKTIMER, 500)
-
-
+                        clock.tick_busy_loop(elapsed_time)
+                        elapsed_time = 0
 
             # Did the user click the window close button? If so, stop the loop
             elif event.type == QUIT:
@@ -284,7 +326,6 @@ def runDoodleJump():
             clock.tick(30)
             continue
 
-
         while last_y > 0:
             obstacles.add(add_middle_blocks())
 
@@ -304,6 +345,7 @@ def runDoodleJump():
             last_y += SPEED
 
         clouds.update()
+        obstacles.update(stop=True)
 
         screen.fill((56, 56, 56))  # 135 206 250
 
@@ -365,11 +407,11 @@ def runDoodleJump():
                     vertical_position += 30
 
                 font = pygame.font.Font(None, 30)
-                playAgain = "To play again press ENTER"
-                playAgain_surface = font.render(playAgain, True, (255, 0, 0))
-                playAgain_rect = playAgain_surface.get_rect(
+                play_again = "To play again press ENTER"
+                play_again_surface = font.render(play_again, True, (255, 0, 0))
+                play_again_rect = play_again_surface.get_rect(
                     center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + vertical_position + 30))
-                screen.blit(playAgain_surface, playAgain_rect)
+                screen.blit(play_again_surface, play_again_rect)
 
                 # Ensure we maintain a 30 frames per second rate
                 pygame.display.flip()
@@ -384,11 +426,15 @@ def runDoodleJump():
                             run_game = False
 
                         if event.key == K_RETURN or event.key == K_KP_ENTER:
-                            set_game(add_start_obstacles, clouds, obstacles, player)
+                            player.reset()
+                            for ob in obstacles:
+                                ob.kill()
+                            obstacles.add(add_start_obstacles())
+                            for cloud in clouds:
+                                cloud.kill()
                             running = True
                             block_speed = 0
                             next_score_update = 10
-
 
                     elif event.type == QUIT:
                         running = True
