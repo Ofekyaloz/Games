@@ -25,7 +25,6 @@ def runDoodleJump():
             }
 
             self.surf = self.player_images[0]
-
             self.rect = self.surf.get_rect(bottomleft=(SCREEN_WIDTH // 2, SCREEN_HEIGHT - 100))
             self.score = 0
             self.alive = True
@@ -76,6 +75,8 @@ def runDoodleJump():
                 self.jumpHeight = height
             self.jump = True
 
+        def player_side(self):
+            return self.player_images[0] == self.surf
     class Block(pygame.sprite.Sprite):
         def __init__(self, x, y, width=None, speed=SPEED, jump=JUMP):
             super(Block, self).__init__()
@@ -164,6 +165,40 @@ def runDoodleJump():
                 self.surf = self.images[self.image_index]
                 self.image_index += 1
 
+    class Bullet(pygame.sprite.Sprite):
+        def __init__(self, x, y):
+            super(Bullet, self).__init__()
+            self.surf = pygame.image.load("images/bullet.png").convert()
+            self.surf.set_colorkey((0, 0, 0), RLEACCEL)
+            self.rect = self.surf.get_rect(bottomleft=(x,y))
+
+        def update(self):
+            self.rect.move_ip(0, -SPEED)
+            if self.rect.bottom < 0:
+                self.kill()
+
+    class Monster(pygame.sprite.Sprite):
+        def __init__(self, x, y):
+            super(Monster, self).__init__()
+            self.images = [pygame.image.load("images/bat1.png").convert_alpha(),
+                           pygame.image.load("images/bat2.png").convert_alpha(),
+                           pygame.image.load("images/bat3.png").convert_alpha(),
+                           pygame.image.load("images/bat2.png").convert_alpha()]
+
+            self.image_index = 0
+            self.n = len(self.images)
+            self.surf = self.images[self.image_index]
+            self.rect = self.surf.get_rect(bottomleft=(x, y))
+
+        def update(self):
+            if self.image_index < 2:
+                self.rect.move_ip(0, -5)
+            else:
+                self.rect.move_ip(0, 5)
+
+            self.surf = self.images[self.image_index]
+            self.image_index = (self.image_index + 1) % self.n
+
     class Cloud(pygame.sprite.Sprite):
         def __init__(self):
             super(Cloud, self).__init__()
@@ -171,11 +206,7 @@ def runDoodleJump():
             self.surf.set_colorkey((0, 0, 0), RLEACCEL)
             # The starting position is randomly generated
             self.rect = self.surf.get_rect(
-                center=(
-                    random.randint(SCREEN_WIDTH + 20, SCREEN_WIDTH + 100),
-                    random.randint(0, SCREEN_HEIGHT),
-                )
-            )
+                center=(random.randint(SCREEN_WIDTH + 20, SCREEN_WIDTH + 100), random.randint(0, SCREEN_HEIGHT)))
 
         def update(self):
             self.rect.move_ip(-4, 0)
@@ -184,12 +215,11 @@ def runDoodleJump():
 
     def render_score(score_num):
         score_str = str(score_num)
-        digit_height = numbers[0].get_height()  # Assuming all digit images have the same height
+        total_height = numbers[0].get_height()  # Assuming all digit images have the same height
         digit_width = numbers[0].get_width()  # Assuming all digit images have the same width
 
         # Calculate the total width and height for the score surface
         total_width = len(score_str) * (digit_width + 5)  # Adding 5 pixels of space between digits
-        total_height = digit_height
 
         # Create a surface with alpha channel
         score_surface = pygame.Surface((total_width, total_height), pygame.SRCALPHA)
@@ -266,12 +296,16 @@ def runDoodleJump():
     pygame.time.set_timer(ADDCLOUD, 1500)
     BLOCKTIMER = pygame.USEREVENT + 2
     pygame.time.set_timer(BLOCKTIMER, 500)
+    ADDMONSTER = pygame.USEREVENT + 3
+    # pygame.time.set_timer(ADDMONSTER, 500)
     player = Player()
 
     obstacles = pygame.sprite.Group()
     obstacles.add(add_start_obstacles())
 
     clouds = pygame.sprite.Group()
+    bullets = pygame.sprite.Group()
+    monster = Monster(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
 
     run_game = True
     pause = False
@@ -290,6 +324,15 @@ def runDoodleJump():
                 # Was it the Escape key? If so, stop the loop
                 if event.key == K_ESCAPE:
                     run_game = False
+
+                if event.key == K_SPACE:
+                    if player.player_side():
+                        bullet = Bullet(player.rect.topright[0], player.rect.y)
+                    else:
+                        bullet = Bullet(player.rect.topleft[0], player.rect.y)
+
+                    bullets.add(bullet)
+
 
                 if event.key == K_p:
                     pause = not pause
@@ -345,6 +388,7 @@ def runDoodleJump():
             last_y += SPEED
 
         clouds.update()
+        bullets.update()
         obstacles.update(stop=True)
 
         screen.fill((56, 56, 56))  # 135 206 250
@@ -366,7 +410,12 @@ def runDoodleJump():
         for entity in obstacles:
             screen.blit(entity.surf, entity.rect)
 
+        for bullet in bullets:
+            screen.blit(bullet.surf, bullet.rect)
+
         screen.blit(player.surf, player.rect)
+        screen.blit(monster.surf, monster.rect)
+        monster.update()
 
         score_image = render_score(player.score)
         score_rect = score_image.get_rect(center=(SCREEN_WIDTH // 2, 30))
