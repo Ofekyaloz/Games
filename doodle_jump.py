@@ -173,7 +173,7 @@ def runDoodleJump():
             self.rect = self.surf.get_rect(bottomleft=(x,y))
 
         def update(self):
-            self.rect.move_ip(0, -SPEED)
+            self.rect.move_ip(0, -SPEED * 2)
             if self.rect.bottom < 0:
                 self.kill()
 
@@ -190,7 +190,9 @@ def runDoodleJump():
             self.surf = self.images[self.image_index]
             self.rect = self.surf.get_rect(bottomleft=(x, y))
 
-        def update(self):
+        def update(self, speed=None):
+            if speed is not None:
+                self.rect.move_ip(0, speed)
             if self.image_index < 2:
                 self.rect.move_ip(0, -5)
             else:
@@ -198,6 +200,9 @@ def runDoodleJump():
 
             self.surf = self.images[self.image_index]
             self.image_index = (self.image_index + 1) % self.n
+
+            if self.rect.top > SCREEN_HEIGHT + 50:
+                self.kill()
 
     class Cloud(pygame.sprite.Sprite):
         def __init__(self):
@@ -271,7 +276,7 @@ def runDoodleJump():
             middle_blocks.append(Block(x=x, y=y))
 
         new_choice = random.randint(0, 4)
-        if new_choice % 4 == 1:
+        if new_choice != 3:
             if new_choice == 0:
                 middle_blocks.append(SuperBlock(x=random.randint(0, SCREEN_WIDTH), y=last_y))
             elif new_choice == 1:
@@ -297,7 +302,7 @@ def runDoodleJump():
     BLOCKTIMER = pygame.USEREVENT + 2
     pygame.time.set_timer(BLOCKTIMER, 500)
     ADDMONSTER = pygame.USEREVENT + 3
-    # pygame.time.set_timer(ADDMONSTER, 500)
+    pygame.time.set_timer(ADDMONSTER, 1000)
     player = Player()
 
     obstacles = pygame.sprite.Group()
@@ -305,7 +310,7 @@ def runDoodleJump():
 
     clouds = pygame.sprite.Group()
     bullets = pygame.sprite.Group()
-    monster = Monster(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)
+    monsters = pygame.sprite.Group()
 
     run_game = True
     pause = False
@@ -353,11 +358,22 @@ def runDoodleJump():
 
             elif event.type == BLOCKTIMER:
                 obstacles.update(block_speed)
+                monsters.update(block_speed)
                 last_y += SPEED
             elif event.type == ADDCLOUD:
                 # Create the new cloud, and add it to our sprite groups
                 new_cloud = Cloud()
                 clouds.add(new_cloud)
+            elif event.type == ADDMONSTER and len(monsters.sprites()) < 2:
+                if len(monsters.sprites()) == 1:
+                    while True:
+                        block = random.choice(obstacles.sprites())
+                        if not block.rect.colliderect(monsters.sprites()[0]) and block.rect.y < 0:
+                            monsters.add(Monster(block.rect.x, block.rect.y - 10))
+                            break
+                else:
+                    block = obstacles.sprites()[-1]
+                    monsters.add(Monster(block.rect.x, block.rect.y - 10))
 
         if pause:
             # Display "Paused" message
@@ -378,6 +394,7 @@ def runDoodleJump():
         running = player.alive
         if player.rect.bottom < SCREEN_HEIGHT // 2 and not player.on_middle_blocks:
             obstacles.update()
+            monsters.update(SPEED)
             last_y += SPEED
             obstacles.add(add_middle_blocks())
             player.on_middle_blocks = True
@@ -385,10 +402,12 @@ def runDoodleJump():
             player.on_middle_blocks = False
         else:
             obstacles.update()
+            monsters.update(SPEED)
             last_y += SPEED
 
         clouds.update()
         bullets.update()
+        monsters.update()
         obstacles.update(stop=True)
 
         screen.fill((56, 56, 56))  # 135 206 250
@@ -413,9 +432,19 @@ def runDoodleJump():
         for bullet in bullets:
             screen.blit(bullet.surf, bullet.rect)
 
+        for monster in monsters:
+            screen.blit(monster.surf, monster.rect)
+
+            if monster.rect.colliderect(player):
+                player.alive = False
+
+            for bullet in bullets:
+                if monster.rect.colliderect(bullet):
+                    monster.kill()
+                    bullet.kill()
+                    break
+
         screen.blit(player.surf, player.rect)
-        screen.blit(monster.surf, monster.rect)
-        monster.update()
 
         score_image = render_score(player.score)
         score_rect = score_image.get_rect(center=(SCREEN_WIDTH // 2, 30))
@@ -481,6 +510,10 @@ def runDoodleJump():
                             obstacles.add(add_start_obstacles())
                             for cloud in clouds:
                                 cloud.kill()
+                            for bullet in bullets:
+                                bullet.kill()
+                            for monster in monsters:
+                                monster.kill()
                             running = True
                             block_speed = 0
                             next_score_update = 10
