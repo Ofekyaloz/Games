@@ -275,7 +275,7 @@ def runDoodleJump():
             x, y = getXY()
             middle_blocks.append(Block(x=x, y=y))
 
-        new_choice = random.randint(0, 4)
+        new_choice = random.randint(0, 5)
         if new_choice != 3:
             if new_choice == 0:
                 middle_blocks.append(SuperBlock(x=random.randint(0, SCREEN_WIDTH), y=last_y))
@@ -302,7 +302,7 @@ def runDoodleJump():
     BLOCKTIMER = pygame.USEREVENT + 2
     pygame.time.set_timer(BLOCKTIMER, 500)
     ADDMONSTER = pygame.USEREVENT + 3
-    pygame.time.set_timer(ADDMONSTER, 1000)
+    pygame.time.set_timer(ADDMONSTER, 10000)
     player = Player()
 
     obstacles = pygame.sprite.Group()
